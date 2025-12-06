@@ -41,8 +41,7 @@ const cache = new Map<string, { data: unknown; timestamp: number }>()
 const CACHE_TTL = 5000 // 5 seconds for faster updates
 
 // Backend API endpoints
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY
+const API_BASE = "/api"
 
 async function fetchWithCache<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   const cacheKey = endpoint
@@ -62,7 +61,6 @@ async function fetchWithCache<T>(endpoint: string, options?: RequestInit): Promi
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
         ...options?.headers,
       },
     })
@@ -173,46 +171,19 @@ export interface AIInsight {
 
 async function generateAIInsight(pnodeData: PNodeMetrics, history?: Array<{ timestamp: number; uptime: number }>): Promise<AIInsight> {
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai')
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const response = await fetch('/api/ai/insight', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ pnodeData, history }),
+    })
 
-    const prompt = `
-Analyze this pNode's performance data and provide insights:
-
-pNode ID: ${pnodeData.id}
-Current Uptime: ${pnodeData.uptime}%
-Status: ${pnodeData.status}
-Rewards: ${pnodeData.rewards}
-Location: ${pnodeData.location}
-Risk Score: ${pnodeData.riskScore}
-
-${history ? `Historical data (last 24h): ${history.map(h => `Time: ${new Date(h.timestamp).toLocaleTimeString()}, Uptime: ${h.uptime}%`).join('; ')}` : ''}
-
-Provide a JSON response with:
-- riskScore: number (0-100, higher = higher risk)
-- explanation: string (why this risk score)
-- summary: string (natural language summary of performance)
-- recommendations: array of strings (actionable advice)
-`
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
-
-    // Parse JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
+    if (!response.ok) {
+      throw new Error('AI service error')
     }
 
-    // Fallback
-    return {
-      riskScore: Math.random() * 100,
-      explanation: "AI analysis temporarily unavailable",
-      summary: "Performance data analyzed",
-      recommendations: ["Monitor uptime closely"]
-    }
+    return await response.json()
   } catch (error) {
     console.error('AI Insight generation failed:', error)
     return {

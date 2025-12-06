@@ -28,8 +28,38 @@ const pnodesFetcher = async () => {
 }
 
 export default function DashboardPage() {
-  // Check if required env vars are set
-  if (!process.env.NEXT_PUBLIC_API_BASE || !process.env.NEXT_PUBLIC_API_KEY) {
+  const { data: status } = useSWR("/api/status", async () => {
+    const res = await fetch("/api/status")
+    return res.json()
+  })
+
+  const { data: stats, isLoading: statsLoading } = useSWR<DashboardStats>(
+    status?.maintenance ? null : "/dashboard/stats",
+    statsFetcher,
+    {
+      refreshInterval: 30000,
+    }
+  )
+
+  const { data: pnodes, isLoading: pnodesLoading } = useSWR<PNodeMetrics[]>(
+    status?.maintenance ? null : "/pnodes",
+    pnodesFetcher,
+    {
+      refreshInterval: 30000,
+    }
+  )
+
+  if (status === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-4">Loading...</h1>
+        </div>
+      </div>
+    )
+  }
+
+  if (status?.maintenance) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -40,14 +70,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  const { data: stats, isLoading: statsLoading } = useSWR<DashboardStats>("/dashboard/stats", statsFetcher, {
-    refreshInterval: 30000,
-  })
-
-  const { data: pnodes, isLoading: pnodesLoading } = useSWR<PNodeMetrics[]>("/pnodes", pnodesFetcher, {
-    refreshInterval: 30000,
-  })
 
   const StatCard = ({
     icon: Icon,
