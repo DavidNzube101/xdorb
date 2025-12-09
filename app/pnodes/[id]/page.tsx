@@ -4,19 +4,27 @@ import { useState } from "react"
 import useSWR from "swr"
 import { useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { apiClient } from "@/lib/api"
+import { apiClient, aiClient } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { ArrowLeft, Copy } from "lucide-react"
 
-const historyData = [
-  { timestamp: "00:00", latency: 45, uptime: 99.8, validations: 120 },
-  { timestamp: "04:00", latency: 52, uptime: 99.6, validations: 145 },
-  { timestamp: "08:00", latency: 38, uptime: 99.9, validations: 168 },
-  { timestamp: "12:00", latency: 62, uptime: 99.2, validations: 132 },
-  { timestamp: "16:00", latency: 48, uptime: 99.7, validations: 175 },
-  { timestamp: "20:00", latency: 41, uptime: 99.95, validations: 189 },
-]
+// Add custom CSS for shimmer animation
+const shimmerKeyframes = `
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+`
+
+
+
+// Inject shimmer keyframes
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = shimmerKeyframes
+  document.head.appendChild(style)
+}
 
 export default function PNodeDetailPage() {
   const params = useParams()
@@ -26,10 +34,31 @@ export default function PNodeDetailPage() {
     `/pnodes/${id}`,
     async () => {
       const result = await apiClient.getPNodeById(id)
+      console.log('API Response for pNode:', result)
+      if (result.error) throw new Error(result.error)
+      console.log('Node data:', result.data)
+      return result.data
+    },
+    { refreshInterval: 30000 },
+  )
+
+  const { data: history } = useSWR(
+    `/pnodes/${id}/history?range=24h`,
+    async () => {
+      const result = await apiClient.getPNodeHistory(id, '24h')
       if (result.error) throw new Error(result.error)
       return result.data
     },
     { refreshInterval: 30000 },
+  )
+
+  const { data: aiInsight } = useSWR(
+    node ? `ai-insight-${id}` : null,
+    async () => {
+      if (!node) return null
+      return await aiClient.getPNodeInsight(node, history)
+    },
+    { refreshInterval: 300000 }, // 5 minutes for AI insights
   )
 
   const [copied, setCopied] = useState(false)
@@ -60,6 +89,9 @@ export default function PNodeDetailPage() {
       </DashboardLayout>
     )
   }
+
+  console.log('Rendering node:', node)
+  console.log('Node location:', node.location)
 
   return (
     <DashboardLayout>
@@ -122,9 +154,16 @@ export default function PNodeDetailPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={historyData}>
+                <LineChart data={history?.map(h => ({
+                  ...h,
+                  time: new Date(h.timestamp * 1000).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  })
+                })) || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="timestamp" stroke="var(--color-muted-foreground)" />
+                  <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
                   <YAxis stroke="var(--color-muted-foreground)" />
                   <Tooltip
                     contentStyle={{
@@ -145,9 +184,16 @@ export default function PNodeDetailPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={historyData}>
+                <AreaChart data={history?.map(h => ({
+                  ...h,
+                  time: new Date(h.timestamp * 1000).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  })
+                })) || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="timestamp" stroke="var(--color-muted-foreground)" />
+                  <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
                   <YAxis stroke="var(--color-muted-foreground)" domain={[95, 100]} />
                   <Tooltip
                     contentStyle={{
@@ -213,20 +259,31 @@ export default function PNodeDetailPage() {
                   <p className="text-foreground">{node.stake} POL</p>
                 </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-2">
-                      <div
-                        className={`h-full rounded-full ${
-                          node.riskScore < 30 ? "bg-green-500" : node.riskScore < 70 ? "bg-primary" : "bg-red-500"
-                        }`}
-                        style={{ width: `${node.riskScore}%` }}
-                      />
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                        {aiInsight ? (
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              aiInsight.riskScore < 30 ? "bg-green-500" : aiInsight.riskScore < 70 ? "bg-primary" : "bg-red-500"
+                            }`}
+                            style={{ width: `${aiInsight.riskScore}%` }}
+                          />
+                        ) : (
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              node.riskScore < 30 ? "bg-green-500" : node.riskScore < 70 ? "bg-primary" : "bg-red-500"
+                            }`}
+                            style={{ width: `${node.riskScore}%` }}
+                          />
+                        )}
+                      </div>
+                      <span className="text-sm font-semibold">
+                        {aiInsight ? `${aiInsight.riskScore}%` : `${node.riskScore}%`}
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold">{node.riskScore}%</span>
-                  </div>
-                </div>
+                   </div>
               </div>
             </div>
           </CardContent>

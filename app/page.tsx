@@ -77,12 +77,14 @@ export default function DashboardPage() {
     value,
     change,
     unit,
+    extra,
   }: {
     icon: React.ComponentType<{ className: string }>
     label: string
     value: number
     change?: number
     unit?: string
+    extra?: string
   }) => (
     <Card className="border-border bg-card hover:shadow-lg transition-shadow">
       <CardContent className="pt-6">
@@ -101,6 +103,7 @@ export default function DashboardPage() {
                 <span>{Math.abs(change)}%</span>
               </div>
             )}
+            {extra && <p className="text-xs text-muted-foreground mt-1">{extra}</p>}
           </div>
           <div className="p-3 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg">
             <Icon className="w-6 h-6 text-primary" />
@@ -130,7 +133,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Activity} label="Total Nodes" value={stats.totalNodes} change={5.2} />
             <StatCard icon={Zap} label="Active Nodes" value={stats.activeNodes} change={2.1} />
-            <StatCard icon={TrendingUp} label="Network Health" value={stats.networkHealth} unit="%" />
+            <StatCard icon={TrendingUp} label="Network Health" value={stats.networkHealth} unit="%" extra={`Fetched ${stats.totalNodes} nodes in ${stats.fetchTime?.toFixed(1) || '0.0'}s`} />
             <StatCard
               icon={Award}
               label="Total Rewards"
@@ -163,54 +166,19 @@ export default function DashboardPage() {
          {/* Notifications */}
          <NotificationManager />
 
-         {/* Embeddable Widgets */}
-         <EmbeddableWidgets />
+          {/* Embeddable Widgets */}
+          <EmbeddableWidgets />
 
-        {/* Recent Activity */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>Top Performing Nodes</CardTitle>
-            <CardDescription>Highest uptime and validation rates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {pnodesLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            ) : pnodes && pnodes.length > 0 ? (
-              <div className="space-y-3">
-                {pnodes.slice(0, 5).map((node) => (
-                  <div
-                    key={node.id}
-                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/60 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{node.name}</p>
-                      <p className="text-xs text-muted-foreground">{node.location}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-foreground">{node.uptime}%</p>
-                        <p className="text-xs text-muted-foreground">Uptime</p>
-                      </div>
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          node.status === "active"
-                            ? "bg-green-500"
-                            : node.status === "warning"
-                              ? "bg-primary"
-                              : "bg-red-500"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+          {/* Recent Activity */}
+          {stats && (
+            <Card className="border-border bg-card">
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground mb-2">Network Health</p>
+                <p className="text-2xl font-bold text-foreground">{stats.networkHealth.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Fetched {stats.totalNodes} nodes in {stats.fetchTime.toFixed(1)}s</p>
+              </CardContent>
+            </Card>
+          )}
       </div>
     </DashboardLayout>
   )

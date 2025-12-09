@@ -10,14 +10,16 @@ export interface PNodeMetrics {
   validations: number
   rewards: number
   location: string
-  lastUpdated: number
+  region: string
+  lat: number
+  lng: number
+  storageUsed: number
+  storageCapacity: number
+  lastSeen: string // ISO string
   performance: number
   stake: number
   riskScore: number
-  storageUsed: number
-  storageCapacity: number
-  lastSeen: number
-  region: string
+  xdnScore: number
 }
 
 export interface DashboardStats {
@@ -27,6 +29,7 @@ export interface DashboardStats {
   totalRewards: number
   averageLatency: number
   validationRate: number
+  fetchTime: number
   timestamp: number
 }
 
@@ -128,7 +131,7 @@ export const apiClient = {
     ),
 
   // Leaderboard
-  getLeaderboard: (metric: "rewards" | "uptime" | "performance" = "rewards", limit = 10) => {
+  getLeaderboard: (metric: "rewards" | "uptime" | "performance" | "xdn" = "xdn", limit = 10) => {
     // Clear cache for leaderboard to force fresh fetch
     const cacheKey = `/leaderboard?metric=${metric}&limit=${limit}`
     cache.delete(cacheKey)

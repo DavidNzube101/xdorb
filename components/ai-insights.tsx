@@ -76,7 +76,7 @@ export function AIInsights() {
             <SelectValue placeholder="Choose a pNode" />
           </SelectTrigger>
           <SelectContent>
-            {pnodes?.slice(0, 10).map(p => (
+            {pnodes?.filter(p => p.id).slice(0, 10).map(p => (
               <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
             ))}
           </SelectContent>

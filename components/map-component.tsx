@@ -38,28 +38,25 @@ export default function MapComponent() {
     const fetchHeatmapData = async () => {
       try {
         const result = await apiClient.getNetworkHeatmap()
-        if (result.error || !Array.isArray(result.data)) {
-          // Mock data for demo
-          setHeatmapData([
-            { lat: 40.7128, lng: -74.0060, intensity: 85, nodeCount: 120, region: "North America", avgUptime: 98.5 },
-            { lat: 51.5074, lng: -0.1278, intensity: 75, nodeCount: 85, region: "Europe", avgUptime: 96.2 },
-            { lat: 35.6762, lng: 139.6503, intensity: 65, nodeCount: 95, region: "Asia", avgUptime: 94.8 },
-            { lat: -33.8688, lng: 151.2093, intensity: 55, nodeCount: 45, region: "Australia", avgUptime: 92.1 },
-            { lat: -23.5505, lng: -46.6333, intensity: 45, nodeCount: 35, region: "South America", avgUptime: 89.7 },
-          ] as HeatmapData[])
+        if (result.error) {
+          console.error("Failed to fetch heatmap data:", result.error)
+          setHeatmapData([])
+          return
+        }
+        
+        // Accommodate both direct array and object-wrapped data
+        const data = Array.isArray(result) ? result : result.data
+        
+        if (!Array.isArray(data)) {
+          console.error("Invalid heatmap data format:", data)
+          setHeatmapData([])
         } else {
-          setHeatmapData(result.data)
+          console.log("Heatmap data received:", data)
+          setHeatmapData(data)
         }
       } catch (error) {
         console.error("Failed to fetch heatmap data:", error)
-        // Fallback to mock data
-        setHeatmapData([
-          { lat: 40.7128, lng: -74.0060, intensity: 85, nodeCount: 120, region: "North America", avgUptime: 98.5 },
-          { lat: 51.5074, lng: -0.1278, intensity: 75, nodeCount: 85, region: "Europe", avgUptime: 96.2 },
-          { lat: 35.6762, lng: 139.6503, intensity: 65, nodeCount: 95, region: "Asia", avgUptime: 94.8 },
-          { lat: -33.8688, lng: 151.2093, intensity: 55, nodeCount: 45, region: "Australia", avgUptime: 92.1 },
-          { lat: -23.5505, lng: -46.6333, intensity: 45, nodeCount: 35, region: "South America", avgUptime: 89.7 },
-        ] as HeatmapData[])
+        setHeatmapData([])
       }
     }
 
@@ -74,7 +71,7 @@ export default function MapComponent() {
   }
 
   const getRadius = (nodeCount: number) => {
-    return Math.max(10, Math.min(50, nodeCount / 2))
+    return Math.max(10, Math.min(50, nodeCount * 3))
   }
 
   return (
@@ -96,18 +93,33 @@ export default function MapComponent() {
             center={[point.lat, point.lng]}
             pathOptions={{
               fillColor: getColor(point.intensity),
-              fillOpacity: 0.7,
+              fillOpacity: 0.8,
               color: getColor(point.intensity),
               weight: 2,
             }}
             radius={getRadius(point.nodeCount)}
           >
             <Popup>
-              <div className="p-2">
-                <h3 className="font-semibold">{point.region}</h3>
-                <p className="text-sm">Nodes: {point.nodeCount}</p>
-                <p className="text-sm">Avg Uptime: {point.avgUptime.toFixed(1)}%</p>
-                <p className="text-sm">Intensity: {point.intensity}%</p>
+              <div className="p-3 min-w-64">
+                <h3 className="font-bold text-lg mb-2 text-gray-800">{point.region}</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Nodes:</span>
+                    <span className="font-semibold">{point.nodeCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg Uptime:</span>
+                    <span className="font-semibold">{point.avgUptime.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Performance:</span>
+                    <span className="font-semibold">{point.intensity.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Coordinates:</span>
+                    <span className="font-mono text-xs">{point.lat.toFixed(4)}, {point.lng.toFixed(4)}</span>
+                  </div>
+                </div>
               </div>
             </Popup>
           </CircleMarker>
