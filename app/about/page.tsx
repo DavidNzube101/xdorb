@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
-import { ExternalLink, Github, MessageCircle, Package, Code, Terminal, Globe } from "lucide-react"
+import { ExternalLink, Github, MessageCircle, Package, Code, Terminal, Globe, Bot } from "lucide-react"
 import Link from "next/link"
 
 export default function AboutPage() {
@@ -116,6 +116,45 @@ export default function AboutPage() {
                   <div className="text-sm text-muted-foreground">View source code</div>
                 </div>
                 <ExternalLink className="w-4 h-4 ml-auto text-muted-foreground" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-primary" />
+              XDOrb Telegram Bot
+            </CardTitle>
+            <CardDescription>Your personal assistant for Xandeum pNode analytics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Get real-time pNode analytics, AI-powered insights, and network monitoring directly in Telegram. Access live data, track performance, and receive intelligent recommendations about your favorite pNodes.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Real-time Updates</Badge>
+              <Badge variant="outline">AI Insights</Badge>
+              <Badge variant="outline">Easy Access</Badge>
+              <Badge variant="outline">No App Required</Badge>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/telegram/learn-more">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Learn More
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </Link>
+              <a
+                href="https://t.me/XDOrb_Bot"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="sm" className="gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Start Bot
+                </Button>
               </a>
             </div>
           </CardContent>

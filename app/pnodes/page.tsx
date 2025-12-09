@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info } from "lucide-react"
+import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info, RotateCcw, RefreshCw } from "lucide-react"
 
 const fetcher = async () => {
   const result = await apiClient.getPNodes()
@@ -21,7 +21,8 @@ const fetcher = async () => {
 }
 
 export default function PNodesPage() {
-  const { data: pnodes, isLoading } = useSWR("/pnodes", fetcher, { refreshInterval: 30000 })
+  const { data: pnodes, isLoading, mutate } = useSWR("/pnodes", fetcher, { refreshInterval: 30000 })
+  const fetchPNodes = () => mutate()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
@@ -448,37 +449,32 @@ export default function PNodesPage() {
             </CardContent>
           </Card>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filtered?.length || 0)} of {filtered?.length || 0} nodes
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+           {/* Pagination */}
+           {totalPages > 1 && (
+         <div className="flex items-center justify-between">
+           <div className="flex gap-2">
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={() => window.location.reload()}
+               className="gap-2"
+             >
+               <RotateCcw className="w-4 h-4" />
+               Hard Reload
+             </Button>
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={fetchPNodes}
+               disabled={isLoading}
+               className="gap-2"
+             >
+               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+               Refresh
+             </Button>
+           </div>
+         </div>
+           )}
         </div>
       </DashboardLayout>
     </TooltipProvider>

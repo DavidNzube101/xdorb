@@ -5,7 +5,10 @@ import useSWR from "swr"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { apiClient, type DashboardStats, type PNodeMetrics } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowUp, ArrowDown, Activity, Zap, Award, TrendingUp } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ArrowUp, ArrowDown, Activity, Zap, Award, TrendingUp, Bot, MessageCircle, ExternalLink } from "lucide-react"
+import Link from "next/link"
 import { NetworkHealthChart } from "@/components/charts/network-health-chart"
 import { ValidationRateChart } from "@/components/charts/validation-rate-chart"
 import { RewardDistribution } from "@/components/reward-distribution"
@@ -123,6 +126,46 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-foreground">XDOrb Dashboard</h1>
           <p className="text-muted-foreground mt-1">Real-time pNode network monitoring</p>
         </div>
+
+        {/* Telegram Bot */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-primary" />
+              XDOrb Telegram Bot
+            </CardTitle>
+            <CardDescription>Your personal assistant for Xandeum pNode analytics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Get real-time pNode analytics, AI-powered insights, and network monitoring directly in Telegram. Access live data, track performance, and receive intelligent recommendations about your favorite pNodes.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">Real-time Updates</Badge>
+              <Badge variant="outline">AI Insights</Badge>
+              <Badge variant="outline">Easy Access</Badge>
+              <Badge variant="outline">No App Required</Badge>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/telegram/learn-more">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Learn More
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </Link>
+              <a
+                href="https://t.me/XDOrb_Bot"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="sm" className="gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Start Bot
+                </Button>
+              </a>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Grid */}
         {statsLoading ? (
