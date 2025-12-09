@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from "react-leaflet"
 import { apiClient } from "@/lib/api"
 import "leaflet/dist/leaflet.css"
 
@@ -23,15 +23,30 @@ interface HeatmapData {
   avgUptime: number
 }
 
-function MapController() {
+interface MapComponentProps {
+  center?: [number, number]
+  zoom?: number
+  highlight?: {
+    lat: number
+    lng: number
+    name: string
+  }
+}
+
+function MapController({ center, zoom }: { center?: [number, number], zoom?: number }) {
   const map = useMap()
+  
   useEffect(() => {
     map.invalidateSize()
-  }, [map])
+    if (center) {
+      map.setView(center, zoom || 10)
+    }
+  }, [map, center, zoom])
+  
   return null
 }
 
-export default function MapComponent() {
+export default function MapComponent({ center, zoom, highlight }: MapComponentProps) {
   const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([])
 
   useEffect(() => {
@@ -51,7 +66,6 @@ export default function MapComponent() {
           console.error("Invalid heatmap data format:", data)
           setHeatmapData([])
         } else {
-          console.log("Heatmap data received:", data)
           setHeatmapData(data)
         }
       } catch (error) {
@@ -75,27 +89,29 @@ export default function MapComponent() {
   }
 
   return (
-    <div className="h-96 rounded-lg overflow-hidden">
+    <div className="h-96 rounded-lg overflow-hidden border border-border bg-card">
       <MapContainer
-        center={[20, 0]}
-        zoom={2}
+        center={center || [20, 0]}
+        zoom={zoom || 2}
         style={{ height: "100%", width: "100%" }}
         className="rounded-lg"
       >
-        <MapController />
+        <MapController center={center} zoom={zoom} />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+        
+        {/* Heatmap Layer */}
         {heatmapData.map((point, index) => (
           <CircleMarker
             key={index}
             center={[point.lat, point.lng]}
             pathOptions={{
               fillColor: getColor(point.intensity),
-              fillOpacity: 0.8,
+              fillOpacity: 0.5,
               color: getColor(point.intensity),
-              weight: 2,
+              weight: 1,
             }}
             radius={getRadius(point.nodeCount)}
           >
@@ -103,27 +119,21 @@ export default function MapComponent() {
               <div className="p-3 min-w-64">
                 <h3 className="font-bold text-lg mb-2 text-gray-800">{point.region}</h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Nodes:</span>
-                    <span className="font-semibold">{point.nodeCount}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Avg Uptime:</span>
-                    <span className="font-semibold">{point.avgUptime.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Performance:</span>
-                    <span className="font-semibold">{point.intensity.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Coordinates:</span>
-                    <span className="font-mono text-xs">{point.lat.toFixed(4)}, {point.lng.toFixed(4)}</span>
-                  </div>
+                   {/* ... popup content ... */}
                 </div>
               </div>
             </Popup>
           </CircleMarker>
         ))}
+
+        {/* Highlighted Node */}
+        {highlight && (
+          <Marker position={[highlight.lat, highlight.lng]}>
+            <Popup>
+              <div className="font-semibold text-gray-800">{highlight.name}</div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
     </div>
   )

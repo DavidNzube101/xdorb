@@ -28,7 +28,7 @@
   --chart-3: #3b82f6;
   --chart-4: #8b5cf6;
   --chart-5: #ec4899;
-  --radius: 1rem;
+  --radius: 0rem;
   --sidebar: #f9fafb;
   --sidebar-foreground: #1f2937;
   --sidebar-primary: #f9961e;
@@ -46,7 +46,7 @@
 }
 
 .dark {
-  --background: #0f0f0f;
+  --background: #000000;
   --foreground: #f3f4f6;
   --card: #1a1a1a;
   --card-foreground: #f3f4f6;

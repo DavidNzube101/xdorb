@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info } from "lucide-react"
 
 const fetcher = async () => {
   const result = await apiClient.getPNodes()
@@ -203,260 +204,283 @@ export default function PNodesPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">XDOrb pNodes</h1>
-          <p className="text-muted-foreground mt-1">Manage and monitor all pNodes in your network</p>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="flex gap-4 flex-wrap">
-          <div className="flex-1 min-w-64 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search nodes by name or location..."
-              className="pl-10"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search pNodes"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <div className="flex gap-2">
-              {(["all", "active", "inactive", "warning"] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    statusFilter === status
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                  aria-label={`Filter by ${status} status`}
+    <TooltipProvider>
+      <DashboardLayout>
+        <div className="space-y-6">
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">XDOrb pNodes</h1>
+                    <p className="text-muted-foreground mt-1">Manage and monitor all pNodes on the Xandeum Network</p>
+                  </div>
+          {/* Search and Filters */}
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search nodes by name or location..."
+                className="pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search pNodes"
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
+                {(["all", "active", "inactive", "warning"] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      statusFilter === status
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                    aria-label={`Filter by ${status} status`}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={regionFilter}
+                  onChange={(e) => setRegionFilter(e.target.value)}
+                  className="px-4 py-2 rounded-lg bg-muted text-muted-foreground border border-border"
+                  aria-label="Filter by region"
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
+                  <option value="all">All Regions</option>
+                  {regions.map((region) => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                className="px-4 py-2 rounded-lg bg-muted text-muted-foreground border border-border"
-                aria-label="Filter by region"
-              >
-                <option value="all">All Regions</option>
-                {regions.map((region) => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-            <div className="flex gap-2">
-              <Button onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4" />
-                CSV
-              </Button>
-              <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    Preview PDF
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-                  <DialogHeader className="flex-shrink-0">
-                    <DialogTitle>PDF Preview - pNodes Directory</DialogTitle>
-                    <DialogDescription>
-                      Review the data before exporting to PDF
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex-1 overflow-auto bg-white text-black p-4 rounded border min-h-0">
-                    <h1 className="text-xl font-bold mb-4 text-black">pNodes Directory</h1>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-gray-300 text-sm" id="pdf-preview-table">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Location</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Uptime</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Latency</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Validations</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">Rewards</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filtered?.map((node, index) => (
-                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-300 px-4 py-2">{node.name}</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.location}</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.status}</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.uptime}%</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.latency}ms</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.validations}</td>
-                              <td className="border border-gray-300 px-4 py-2">{node.rewards.toFixed(2)}</td>
+              <div className="flex gap-2">
+                <Button onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  CSV
+                </Button>
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Preview PDF
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0">
+                      <DialogTitle>PDF Preview - pNodes Directory</DialogTitle>
+                      <DialogDescription>
+                        Review the data before exporting to PDF
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-auto bg-white text-black p-4 rounded border min-h-0">
+                      <h1 className="text-xl font-bold mb-4 text-black">pNodes Directory</h1>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse border border-gray-300 text-sm" id="pdf-preview-table">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Location</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Uptime</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Latency</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Validations</th>
+                              <th className="border border-gray-300 px-4 py-2 text-left">Rewards</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {filtered?.map((node, index) => (
+                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="border border-gray-300 px-4 py-2">{node.name}</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.location}</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.status}</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.uptime}%</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.latency}ms</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.validations}</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.rewards.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
-                    <Button variant="outline" onClick={() => setPreviewOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => { exportToPDF(); setPreviewOpen(false); }}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Export PDF
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-        </div>
-
-        {/* Nodes Table */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>Active Nodes</CardTitle>
-            <CardDescription>{filtered?.length || 0} nodes found</CardDescription>
-            <div className="flex gap-2 mt-2">
-              <Button variant="outline" size="sm" onClick={() => {
-                setStatusFilter("all")
-                setRegionFilter("all")
-                setSearch("")
-                setCurrentPage(1)
-              }}>
-                Clear Filters
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-muted rounded animate-pulse" />
-                ))}
+                    <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
+                      <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={() => { exportToPDF(); setPreviewOpen(false); }}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export PDF
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full" role="table" aria-label="pNodes data table">
-                   <thead>
-                     <tr className="border-b border-border" role="row">
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Name</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Location</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Status</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Latency</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Storage</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Last Seen</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Validations</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Rewards</th>
-                       <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Actions</th>
-                      </tr>
-                    </thead>
-                   <tbody>
-                      {paginatedNodes.map((node) => (
-                        <tr
-                          key={node.id}
-                          className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
-                          onClick={() => window.location.href = `/pnodes/${node.id}`}
-                          role="row"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              window.location.href = `/pnodes/${node.id}`
-                            }
-                          }}
-                          aria-label={`pNode ${node.name}, status ${node.status}, uptime ${node.uptime}%`}
-                        >
-                          <td className="p-3 font-medium text-foreground" role="cell">{node.name}</td>
-                          <td className="p-3 text-muted-foreground" role="cell">{node.location}</td>
-                          <td className="p-3" role="cell">
-                            <Badge className={statusBadgeVariant(node.status)}>
-                              {node.status.charAt(0).toUpperCase() + node.status.slice(1)}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-muted-foreground" role="cell">{node.uptime}%</td>
-                          <td className="p-3 text-muted-foreground" role="cell">{node.latency}ms</td>
-                          <td className="p-3 text-muted-foreground" role="cell">
-                            {(node.storageUsed / 1024).toFixed(1)} / {(node.storageCapacity / 1024).toFixed(1)} TB
-                          </td>
-                          <td className="p-3 text-muted-foreground" role="cell">
-                            {new Date(node.lastSeen).toLocaleString()}
-                          </td>
-                          <td className="p-3 text-muted-foreground" role="cell">{node.validations}</td>
-                          <td className="p-3 font-semibold text-foreground" role="cell">{node.rewards.toFixed(2)}</td>
-                          <td className="p-3" role="cell">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  toggleBookmark(node.id)
-                                }}
-                                className={bookmarked.has(node.id) ? "text-primary" : ""}
-                                aria-label={bookmarked.has(node.id) ? "Remove bookmark" : "Add bookmark"}
-                              >
-                                <Bookmark className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  shareNode(node)
-                                }}
-                                aria-label="Share pNode"
-                              >
-                                <Share2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filtered?.length || 0)} of {filtered?.length || 0} nodes
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                aria-label="Next page"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+
+          {/* Nodes Table */}
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle>Active Nodes</CardTitle>
+              <CardDescription>{filtered?.length || 0} nodes found</CardDescription>
+              <div className="flex gap-2 mt-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setStatusFilter("all")
+                  setRegionFilter("all")
+                  setSearch("")
+                  setCurrentPage(1)
+                }}>
+                  Clear Filters
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full" role="table" aria-label="pNodes data table">
+                     <thead>
+                       <tr className="border-b border-border" role="row">
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Name</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Location</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Status</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Latency</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Storage</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Last Seen</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Validations</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Rewards</th>
+                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Actions</th>
+                        </tr>
+                      </thead>
+                     <tbody>
+                        {paginatedNodes.map((node) => (
+                          <tr
+                            key={node.id}
+                            className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
+                            onClick={() => window.location.href = `/pnodes/${node.id}`}
+                            role="row"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                window.location.href = `/pnodes/${node.id}`
+                              }
+                            }}
+                            aria-label={`pNode ${node.name}, status ${node.status}, uptime ${node.uptime}%`}
+                          >
+                            <td className="p-3 font-medium text-foreground" role="cell">
+                                <div className="flex flex-col">
+                                    <span>{node.name}</span>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge variant="secondary" className="w-fit text-[10px] px-1 h-5 cursor-help mt-1 font-mono">
+                                                XDN: {node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right" className="max-w-xs">
+                                            <div className="space-y-2 p-1">
+                                                <p className="font-semibold text-xs border-b pb-1 mb-1">XDN Score Formula</p>
+                                                <ul className="text-[10px] space-y-1 text-muted-foreground">
+                                                    <li className="flex justify-between"><span>Stake:</span> <span>40%</span></li>
+                                                    <li className="flex justify-between"><span>Uptime:</span> <span>30%</span></li>
+                                                    <li className="flex justify-between"><span>Latency:</span> <span>20%</span></li>
+                                                    <li className="flex justify-between"><span>Risk Score:</span> <span>10%</span></li>
+                                                </ul>
+                                            </div>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                            </td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.location}</td>
+                            <td className="p-3" role="cell">
+                              <Badge className={statusBadgeVariant(node.status)}>
+                                {node.status.charAt(0).toUpperCase() + node.status.slice(1)}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.uptime}%</td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.latency}ms</td>
+                            <td className="p-3 text-muted-foreground" role="cell">
+                              {(node.storageUsed / 1024).toFixed(1)} / {(node.storageCapacity / 1024).toFixed(1)} TB
+                            </td>
+                            <td className="p-3 text-muted-foreground" role="cell">
+                              {new Date(node.lastSeen).toLocaleString()}
+                            </td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.validations}</td>
+                            <td className="p-3 font-semibold text-foreground" role="cell">{node.rewards.toFixed(2)}</td>
+                            <td className="p-3" role="cell">
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleBookmark(node.id)
+                                  }}
+                                  className={bookmarked.has(node.id) ? "text-primary" : ""}
+                                  aria-label={bookmarked.has(node.id) ? "Remove bookmark" : "Add bookmark"}
+                                >
+                                  <Bookmark className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    shareNode(node)
+                                  }}
+                                  aria-label="Share pNode"
+                                >
+                                  <Share2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filtered?.length || 0)} of {filtered?.length || 0} nodes
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </DashboardLayout>
+    </TooltipProvider>
   )
 }
