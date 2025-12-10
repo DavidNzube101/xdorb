@@ -144,3 +144,17 @@
 .animate-marquee {
   animation: marquee 30s linear infinite;
 }
+
+@keyframes shimmer-border {
+  from { background-position: 0 0; }
+  to { background-position: -200% 0; }
+}
+
+.animate-shimmer-border {
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background: linear-gradient(var(--card), var(--card)) padding-box,
+              linear-gradient(90deg, var(--primary) 0%, var(--secondary) 50%, var(--primary) 100%) border-box;
+  background-size: 200% 100%;
+  animation: shimmer-border 4s linear infinite;
+}

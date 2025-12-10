@@ -1,6 +1,7 @@
 "use client"
 
 import { PriceMarquee } from "@/components/price-marquee"
+import { BuyXandButton } from "@/components/buy-xand-button"
 import { useState, useRef } from "react"
 import useSWR from "swr"
 import { useParams } from "next/navigation"
@@ -268,9 +269,12 @@ export default function PNodeDetailPage() {
                   </DialogContent>
               </Dialog>
             </div>
-            {/* Mobile Price Marquee */}
-            <div className="md:hidden border border-border bg-card/50 rounded-lg p-2 h-10 flex items-center shadow-sm">
-              <PriceMarquee />
+            {/* Mobile Price Marquee & Buy Button */}
+            <div className="md:hidden flex gap-2 items-center">
+              <div className="flex-1 border border-border bg-card/50 rounded-lg p-2 h-10 flex items-center shadow-sm overflow-hidden">
+                <PriceMarquee />
+              </div>
+              <BuyXandButton />
             </div>
           </div>
           {/* 

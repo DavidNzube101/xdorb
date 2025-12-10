@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 
 import { PriceMarquee } from "@/components/price-marquee"
+import { BuyXandButton } from "@/components/buy-xand-button"
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -250,9 +251,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Desktop Bottom Bar: Marquee (Left) & Footer (Right) */}
       <div className="fixed bottom-6 left-28 right-6 z-30 hidden md:flex justify-between pointer-events-none gap-4">
-        {/* Left: Price Marquee */}
-        <div className="bg-background/60 backdrop-blur-md border border-border px-6 py-3 shadow-lg rounded-none pointer-events-auto h-[58px] flex items-center w-full max-w-[500px] overflow-hidden">
-             <PriceMarquee />
+        {/* Left: Price Marquee & Buy Button */}
+        <div className="bg-background/60 backdrop-blur-md border border-border px-4 py-2 shadow-lg rounded-none pointer-events-auto flex items-center gap-4 w-full max-w-[650px] h-[58px]">
+             <div className="flex-1 h-full overflow-hidden flex items-center">
+                <PriceMarquee />
+             </div>
+             <div className="shrink-0">
+                <BuyXandButton />
+             </div>
         </div>
 
         {/* Right: Footer Content */}

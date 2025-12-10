@@ -1,16 +1,14 @@
 "use client"
 
-import { generateAvatar } from "@/lib/utils"
 import { HardDrive } from "lucide-react"
 
 interface NodeAvatarProps {
   id: string
   name: string
   size?: "sm" | "md" | "lg"
-  variant?: "initials" | "server"
 }
 
-export function NodeAvatar({ id, name, size = "md", variant = "initials" }: NodeAvatarProps) {
+export function NodeAvatar({ id, name, size = "md" }: NodeAvatarProps) {
   const sizeClasses = {
     sm: "w-8 h-8 text-xs",
     md: "w-12 h-12 text-sm",
@@ -23,27 +21,12 @@ export function NodeAvatar({ id, name, size = "md", variant = "initials" }: Node
     lg: 24,
   }
 
-  if (variant === "server") {
-    return (
-      <div
-        className={`rounded-full flex items-center justify-center bg-gray-200 text-gray-600 ${sizeClasses[size]}`}
-        title={name}
-      >
-        <HardDrive size={iconSizes[size]} />
-      </div>
-    )
-  }
-
-  // Default initials variant
-  const { bgColor, initials } = generateAvatar(id)
-
   return (
     <div
-      className={`rounded-full flex items-center justify-center font-semibold text-white ${sizeClasses[size]}`}
-      style={{ backgroundColor: bgColor }}
+      className={`rounded-full flex items-center justify-center bg-gray-200 text-gray-600 ${sizeClasses[size]}`}
       title={name}
     >
-      {initials}
+      <HardDrive size={iconSizes[size]} />
     </div>
   )
 }

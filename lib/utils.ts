@@ -1,27 +1,53 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Generate avatar from node ID hash
-export function generateAvatar(id: string) {
-  const hash = id.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0)
-    return a & a
-  }, 0)
+// Function to convert UI amount to raw token amount (base units)
+export const parseUnits = (amount: string, decimals: number): number => {
+  if (!amount || isNaN(parseFloat(amount))) return 0
+  // Handle simple cases, might need BigInt for very high precision but for this UI purpose, this is often sufficient.
+  // However, for correct blockchain math, we should ideally work with integers.
+  // Let's use simple math for now as we pass 'number' to Jupiter API helper which converts to string.
+  return Math.floor(parseFloat(amount) * (10 ** decimals))
+}
 
-  const colors = [
-    '#f9961e', '#116b61', '#3b82f6', '#8b5cf6', '#ec4899',
-    '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16'
-  ]
+// Function to convert raw token amount (base units) to UI amount
+export const formatUnits = (amount: string | number | bigint, decimals: number): string => {
+  let val: bigint
+  try {
+     val = BigInt(amount)
+  } catch {
+     val = BigInt(0)
+  }
 
-  const colorIndex = Math.abs(hash) % colors.length
-  const bgColor = colors[colorIndex]
+  if (val === BigInt(0)) return '0'
 
-  // Generate initials from ID
-  const initials = id.substring(0, 2).toUpperCase()
+  const divisor = BigInt(10 ** decimals)
+  const integer = val / divisor
+  const fraction = val % divisor
 
-  return { bgColor, initials }
+  // Pad fraction with leading zeros if necessary
+  let fractionString = fraction.toString()
+  
+  // If fraction is 0, just return integer
+  if (fraction === BigInt(0)) return integer.toString()
+
+  fractionString = fractionString.padStart(decimals, '0')
+
+  // Remove trailing zeros
+  fractionString = fractionString.replace(/0+$/, '')
+
+  if (fractionString === '') {
+    return integer.toString()
+  }
+
+  return `${integer.toString()}.${fractionString}`
+}
+
+// Helper for shortening Solana address
+export const shortenAddress = (address: string, chars = 4): string => {
+  return `${address.substring(0, chars)}...${address.substring(address.length - chars)}`
 }

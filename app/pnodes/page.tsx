@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import useSWR from "swr"
 import Papa from "papaparse"
 import jsPDF from 'jspdf'
@@ -10,11 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info, RotateCcw, RefreshCw } from "lucide-react"
+import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info, RotateCcw, RefreshCw, Filter } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { PriceMarquee } from "@/components/price-marquee"
+import { BuyXandButton } from "@/components/buy-xand-button"
 
 const fetcher = async () => {
   const result = await apiClient.getPNodes()
@@ -26,29 +29,8 @@ export default function PNodesPage() {
   const { data: pnodes, isLoading, mutate } = useSWR("/pnodes", fetcher, { refreshInterval: 30000 })
   const fetchPNodes = () => mutate()
 
-  const handleReload = async () => {
-    setReloading(true)
-    try {
-      const result = await apiClient.refreshData()
-      if (result.error) {
-        console.error("Reload failed:", result.error)
-        // Could add toast notification here
-      } else {
-        // Update SWR cache with fresh data
-        mutate(result.data, false)
-        // Reset filters and search
-        setStatusFilter("all")
-        setRegionFilter("all")
-        setSearch("")
-        setCurrentPage(1)
-      }
-    } catch (error) {
-      console.error("Reload error:", error)
-    } finally {
-      setReloading(false)
-    }
-  }
   const [search, setSearch] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -61,7 +43,28 @@ export default function PNodesPage() {
     return new Set()
   })
    const [previewOpen, setPreviewOpen] = useState(false)
+   const [filterOpen, setFilterOpen] = useState(false)
    const [reloading, setReloading] = useState(false)
+
+  const handleReload = async () => {
+    setReloading(true)
+    try {
+      const result = await apiClient.refreshData()
+      if (result.error) {
+        console.error("Reload failed:", result.error)
+      } else {
+        mutate(result.data, false)
+        setStatusFilter("all")
+        setRegionFilter("all")
+        setSearch("")
+        setCurrentPage(1)
+      }
+    } catch (error) {
+      console.error("Reload error:", error)
+    } finally {
+      setReloading(false)
+    }
+  }
 
   const toggleBookmark = (nodeId: string) => {
     const newBookmarked = new Set(bookmarked)
@@ -82,9 +85,7 @@ export default function PNodesPage() {
         url: `${window.location.origin}/pnodes/${node.id}`,
       })
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(`${window.location.origin}/pnodes/${node.id}`)
-      // Could show a toast here
     }
   }
 
@@ -100,8 +101,20 @@ export default function PNodesPage() {
     : []
 
   const regions = Array.isArray(pnodes)
-    ? Array.from(new Set(pnodes.map(node => node.region)))
+    ? Array.from(new Set(pnodes.map(node => node.region))).filter(Boolean)
     : []
+
+  // Search Suggestions Logic
+  const suggestions = useMemo(() => {
+    if (!search || search.length < 2 || !pnodes) return []
+    const lowerSearch = search.toLowerCase()
+    const matches = new Set<string>()
+    pnodes.forEach(node => {
+      if (node.name.toLowerCase().includes(lowerSearch)) matches.add(node.name)
+      if (node.location.toLowerCase().includes(lowerSearch)) matches.add(node.location)
+    })
+    return Array.from(matches).slice(0, 5) // Top 5 suggestions
+  }, [search, pnodes])
 
   // Pagination
   const totalPages = Math.ceil((filtered?.length || 0) / itemsPerPage)
@@ -137,14 +150,10 @@ export default function PNodesPage() {
     if (!filtered) return
 
     try {
-      // Create PDF using jsPDF directly
       const doc = new jsPDF()
-
-      // Add title
       doc.setFontSize(20)
       doc.text('pNodes Directory', 20, 30)
 
-      // Prepare table data
       const headers = ['Name', 'Location', 'Status', 'Uptime', 'Latency', 'Validations', 'Rewards']
       const data = filtered.map(node => [
         node.name,
@@ -156,14 +165,12 @@ export default function PNodesPage() {
         node.rewards.toFixed(2)
       ])
 
-      // Simple table implementation
       let yPosition = 50
       const pageHeight = doc.internal.pageSize.height
       const lineHeight = 8
       const margin = 20
       const columnWidth = (doc.internal.pageSize.width - 2 * margin) / headers.length
 
-      // Draw headers
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       headers.forEach((header, index) => {
@@ -171,27 +178,21 @@ export default function PNodesPage() {
       })
 
       yPosition += lineHeight
-
-      // Draw header line
       doc.line(margin, yPosition - 2, doc.internal.pageSize.width - margin, yPosition - 2)
-
       yPosition += lineHeight / 2
 
-      // Draw data rows
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)
 
       data.forEach((row, rowIndex) => {
-        // Check if we need a new page
         if (yPosition > pageHeight - 30) {
           doc.addPage()
           yPosition = 30
-  }
+        }
 
         row.forEach((cell, cellIndex) => {
           const cellText = cell.toString()
-          // Truncate long text if needed
-          const maxChars = Math.floor((columnWidth - 4) / 2) // Rough character limit
+          const maxChars = Math.floor((columnWidth - 4) / 2)
           const truncatedText = cellText.length > maxChars
             ? cellText.substring(0, maxChars - 3) + '...'
             : cellText
@@ -201,7 +202,6 @@ export default function PNodesPage() {
 
         yPosition += lineHeight
 
-        // Add subtle row separator for alternating rows
         if (rowIndex % 2 === 0) {
           doc.setDrawColor(240, 240, 240)
           doc.line(margin, yPosition - lineHeight + 2, doc.internal.pageSize.width - margin, yPosition - lineHeight + 2)
@@ -209,7 +209,6 @@ export default function PNodesPage() {
         }
       })
 
-      // Save the PDF
       doc.save('pnodes-data.pdf')
     } catch (error) {
       console.error('PDF export failed:', error)
@@ -235,70 +234,132 @@ export default function PNodesPage() {
       <DashboardLayout>
         <div className="space-y-6">
                   <div>
-                    <h1 className="text-3xl font-bold text-foreground">XDOrb pNodes</h1>
+                    <h1 className="text-3xl font-bold text-foreground">pNodes</h1>
                     <p className="text-muted-foreground mt-1">Manage and monitor all pNodes on the Xandeum Network</p>
                     
-                    {/* Mobile Price Marquee */}
-                    <div className="mt-4 md:hidden border border-border bg-card/50 rounded-lg p-2 h-10 flex items-center shadow-sm">
-                      <PriceMarquee />
+                    {/* Mobile Price Marquee & Buy Button */}
+                    <div className="mt-4 md:hidden flex gap-2 items-center">
+                      <div className="flex-1 border border-border bg-card/50 rounded-lg p-2 h-10 flex items-center shadow-sm overflow-hidden">
+                        <PriceMarquee />
+                      </div>
+                      <BuyXandButton />
                     </div>
                   </div>
-          {/* Search and Filters */}
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-64 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          
+          {/* Toolbar: Search (Left) | Actions (Right) */}
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+            
+            {/* Intelligent Search */}
+            <div className="relative w-full md:w-96 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search nodes by name or location..."
                 className="pl-10"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Delay to allow click
                 aria-label="Search pNodes"
               />
+              {/* Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                  <ul>
+                    {suggestions.map((s, i) => (
+                      <li 
+                        key={i}
+                        className="px-4 py-2 text-sm hover:bg-muted cursor-pointer transition-colors"
+                        onClick={() => {
+                          setSearch(s)
+                          setShowSuggestions(false)
+                        }}
+                      >
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className="flex gap-2">
-                {(["all", "active", "inactive", "warning"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      statusFilter === status
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                    aria-label={`Filter by ${status} status`}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <select
-                  value={regionFilter}
-                  onChange={(e) => setRegionFilter(e.target.value)}
-                  className="px-4 py-2 rounded-lg bg-muted text-muted-foreground border border-border"
-                  aria-label="Filter by region"
-                >
-                  <option value="all">All Regions</option>
-                  {regions.map((region) => (
-                    <option key={region} value={region}>{region}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-              <div className="flex gap-2">
-                <Button onClick={exportToCSV} variant="outline" size="sm" className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4" />
-                  CSV
-                </Button>
-                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Eye className="w-4 h-4" />
-                      Preview PDF
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-wrap w-full md:w-auto">
+              {/* Filters Modal */}
+              <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filters
+                    {(statusFilter !== "all" || regionFilter !== "all") && (
+                      <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                        {(statusFilter !== "all" ? 1 : 0) + (regionFilter !== "all" ? 1 : 0)}
+                      </Badge>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Filter pNodes</DialogTitle>
+                    <DialogDescription>Refine the list of nodes by status and region.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(["all", "active", "inactive", "warning"] as const).map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => setStatusFilter(status)}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                              statusFilter === status
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Region</Label>
+                      <Select value={regionFilter} onValueChange={setRegionFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select region" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Regions</SelectItem>
+                          {regions.map((region) => (
+                            <SelectItem key={region} value={region}>{region}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setStatusFilter("all")
+                      setRegionFilter("all")
+                    }}>Reset</Button>
+                    <Button onClick={() => setFilterOpen(false)}>Apply Filters</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Button onClick={exportToCSV} variant="outline" size="icon" title="Export CSV">
+                <FileSpreadsheet className="w-4 h-4" />
+              </Button>
+              
+              <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" title="Preview PDF">
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
                     <DialogHeader className="flex-shrink-0">
                       <DialogTitle>PDF Preview - pNodes Directory</DialogTitle>
                       <DialogDescription>
@@ -346,8 +407,8 @@ export default function PNodesPage() {
                       </Button>
                     </div>
                   </DialogContent>
-                </Dialog>
-              </div>
+              </Dialog>
+            </div>
           </div>
 
           {/* Nodes Table */}
