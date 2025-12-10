@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ExternalLink, Github, MessageCircle, Package, Code, Terminal, Globe, Bot } from "lucide-react"
 import Link from "next/link"
 
