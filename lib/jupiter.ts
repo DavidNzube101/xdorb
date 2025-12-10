@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
-import { decode } from 'bs58'
+import bs58 from 'bs58'
 
 // Helper function to get the current Solana connection
 export const getConnection = () => {
@@ -94,7 +94,7 @@ export const getJupiterSwapTransaction = async (
     }
 
     const { swapTransaction } = await response.json()
-    const swapTransactionBuf = decode(swapTransaction)
+    const swapTransactionBuf = bs58.decode(swapTransaction)
     const transaction = VersionedTransaction.deserialize(swapTransactionBuf)
 
     return transaction
