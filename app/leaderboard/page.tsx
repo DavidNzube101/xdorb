@@ -166,7 +166,7 @@ export default function LeaderboardPage() {
                             <div className="space-y-1">
                               <p className="font-semibold">{node.name}</p>
                               <p className="text-sm">Status: {node.status}</p>
-                              <p className="text-sm">Uptime: {node.uptime}%</p>
+                               <p className="text-sm">Uptime: {node.uptime}s</p>
                               <p className="text-sm">Latency: {node.latency}ms</p>
                               <p className="text-sm">Stake: {node.stake.toLocaleString()}</p>
                               <p className="text-sm">Risk Score: {node.riskScore}</p>
@@ -187,8 +187,8 @@ export default function LeaderboardPage() {
                         <p className="text-sm text-muted-foreground">{node.location}</p>
                         <div className="flex gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
-                            {node.uptime}% uptime
-                          </Badge>
+                             {node.uptime}s uptime
+                           </Badge>
                           <Badge variant="outline" className="text-xs">
                             {node.latency}ms latency
                           </Badge>
@@ -198,9 +198,9 @@ export default function LeaderboardPage() {
                       {/* Mobile Stats Row */}
                       <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
                         <div className="sm:hidden flex gap-2">
-                             <Badge variant="outline" className="text-xs h-6">
-                                {node.uptime}%
-                              </Badge>
+                              <Badge variant="outline" className="text-xs h-6">
+                                 {node.uptime}s
+                               </Badge>
                               <Badge variant="outline" className="text-xs h-6">
                                 {node.latency}ms
                               </Badge>
