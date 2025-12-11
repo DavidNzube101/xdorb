@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const queryString = searchParams.toString();
-  const jupiterUrl = `https://quote-api.jup.ag/v6/quote?${queryString}`;
+  const backendUrl = `https://xdorb-backend.onrender.com/api/jupiter/quote?${queryString}`;
 
   try {
-    const response = await fetch(jupiterUrl, {
+    const response = await fetch(backendUrl, {
       headers: {
         'Accept': 'application/json',
       },

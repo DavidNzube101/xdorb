@@ -1,5 +1,6 @@
 import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
 import bs58 from 'bs58'
+import { apiClient } from '@/lib/api' // Import apiClient
 
 // Helper function to get the current Solana connection
 export const getConnection = () => {
@@ -48,22 +49,24 @@ export const getJupiterQuote = async (
   slippageBps: number = 50 // 0.5% slippage
 ): Promise<QuoteResponse | null> => {
   try {
-    const url = new URL('/api/jupiter/quote', window.location.origin)
-    url.searchParams.append('inputMint', inputMint.toBase58())
-    url.searchParams.append('outputMint', outputMint.toBase58())
-    url.searchParams.append('amount', Math.floor(amount).toString()) // Amount in lamports/base units
-    url.searchParams.append('slippageBps', slippageBps.toString())
-    url.searchParams.append('platformFeeBps', PLATFORM_FEE_BPS.toString())
-    url.searchParams.append('referralAccount', JUPITER_REFERRAL_ACCOUNT)
+    const params = new URLSearchParams()
+    params.append('inputMint', inputMint.toBase58())
+    params.append('outputMint', outputMint.toBase58())
+    params.append('amount', Math.floor(amount).toString()) // Amount in lamports/base units
+    params.append('slippageBps', slippageBps.toString())
+    params.append('platformFeeBps', PLATFORM_FEE_BPS.toString())
+    params.append('referralAccount', JUPITER_REFERRAL_ACCOUNT)
 
-    const response = await fetch(url.toString())
-    if (!response.ok) {
-      const errorBody = await response.json();
-      console.error('Jupiter Quote API Error:', errorBody);
-      throw new Error(`Failed to get Jupiter quote: ${response.statusText}`);
+    // Use apiClient to call the new backend proxy endpoint
+    const response = await apiClient.getJupiterQuote(params.toString())
+    
+    if (response.error) {
+      console.error('Jupiter Quote API Error:', response.error)
+      throw new Error(`Failed to get Jupiter quote: ${response.error}`)
     }
-    const quote = await response.json();
-    return quote;
+    
+    // The backend now returns { data: jupiterResponse }. Extract jupiterResponse.
+    return response.data as QuoteResponse;
   } catch (error) {
     console.error('Error fetching Jupiter quote:', error)
     return null

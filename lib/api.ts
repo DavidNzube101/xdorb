@@ -46,6 +46,7 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
+      cache: 'no-store', // Disable caching to ensure fresh data
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,
@@ -134,6 +135,11 @@ export const apiClient = {
       `/network/history?range=${timeRange}`,
     ),
 
+  getJupiterQuote: (queryString: string) =>
+    fetchFromApi<any>(`/jupiter/quote?${queryString}`),
+
+  getHistoricalPNodes: () => fetchFromApi<PNodeMetrics[]>("/pnodes/historical"),
+
   // Clear cache manually if needed (No-op now)
   clearCache: () => {},
 }
@@ -179,7 +185,5 @@ export const aiClient = {
 
 // Export cache utilities for debugging
 export const cacheDebug = {
-  getSize: () => cache.size,
-  getKeys: () => Array.from(cache.keys()),
-  getCacheEntry: (key: string) => cache.get(key),
+  // Removed cache utilities as cache is not used
 }

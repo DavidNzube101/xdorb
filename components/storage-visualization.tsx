@@ -61,13 +61,7 @@ function formatBytes(bytes: number) {
 }
 
 export function StorageVisualization({ totalCapacity = 0, usedCapacity = 0, simulated = false }: StorageVisualizationProps) {
-  // If simulated, show fixed nice looking values if real is 0, or just use passed values?
-  // Parent controls values. If parent passes simulated data, we render it.
-  // But wait, GetAnalytics backend returns Real Storage even in simulated mode.
-  // So if we want "Simulated Visualization", we should override here if `simulated` is true?
-  // Let's defer to props. If parent wants simulated, it passes mock numbers.
-  
-  // Calculate percentages
+  // Calculate percentages based on real data
   let usedPercent = 0
   let freePercent = 0
   
@@ -75,7 +69,7 @@ export function StorageVisualization({ totalCapacity = 0, usedCapacity = 0, simu
     usedPercent = (usedCapacity / totalCapacity) * 100
     freePercent = 100 - usedPercent
   } else if (simulated) {
-     // Fallback mock visualization if no real data but simulated is on
+     // Only if explicitly simulated AND no data (though we prefer real 0s now)
      usedPercent = 75
      freePercent = 25
   }
@@ -85,9 +79,9 @@ export function StorageVisualization({ totalCapacity = 0, usedCapacity = 0, simu
       <CardHeader>
         <CardTitle>3D Storage Visualization</CardTitle>
         <CardDescription>
-            {totalCapacity > 0 
+            {totalCapacity >= 0 
                 ? `Usage: ${formatBytes(usedCapacity)} / ${formatBytes(totalCapacity)}`
-                : simulated ? "Simulated Network Storage" : "No storage data available"}
+                : "No storage data available"}
         </CardDescription>
       </CardHeader>
       <CardContent>

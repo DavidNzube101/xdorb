@@ -120,7 +120,6 @@ export default function AnalyticsPage() {
         <StorageVisualization 
           totalCapacity={analytics?.storage?.totalCapacity}
           usedCapacity={analytics?.storage?.usedCapacity}
-          simulated={showSimulated}
         />
 
         <Card className="border-border bg-card">

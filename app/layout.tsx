@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "XDOrb - Xandeum Analytics Platform",
     description: "Real-time pNode monitoring and analytics for the Xandeum network",
-    url: "https://xdorb.appwrite.network",
+    url: "https://xdorb.vercel.app",
     siteName: "XDOrb",
     images: [
       {

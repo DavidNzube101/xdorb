@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info, RotateCcw, RefreshCw, Filter } from "lucide-react"
+import { Search, Download, FileText, FileSpreadsheet, Bookmark, Share2, ChevronLeft, ChevronRight, Eye, Info, RotateCcw, RefreshCw, Filter, Skull } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -353,11 +353,15 @@ export default function PNodesPage() {
                 </DialogContent>
               </Dialog>
 
-              <Button onClick={exportToCSV} variant="outline" size="icon" title="Export CSV">
-                <FileSpreadsheet className="w-4 h-4" />
-              </Button>
-              
-              <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+               <Button onClick={exportToCSV} variant="outline" size="icon" title="Export CSV">
+                 <FileSpreadsheet className="w-4 h-4" />
+               </Button>
+
+               <Button onClick={() => window.location.href = '/catacombs'} variant="outline" size="icon" title="Catacombs">
+                 <Skull className="w-4 h-4" />
+               </Button>
+
+               <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon" title="Preview PDF">
                     <Eye className="w-4 h-4" />
