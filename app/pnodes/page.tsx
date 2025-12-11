@@ -462,7 +462,7 @@ export default function PNodesPage() {
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Name</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Location</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Status</th>
-                         <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime</th>
+                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime (s)</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Latency</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Storage</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Last Seen</th>
@@ -515,7 +515,7 @@ export default function PNodesPage() {
                                 {node.status.charAt(0).toUpperCase() + node.status.slice(1)}
                               </Badge>
                             </td>
-                            <td className="p-3 text-muted-foreground" role="cell">{node.uptime}%</td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.uptime}s</td>
                             <td className="p-3 text-muted-foreground" role="cell">{node.latency}ms</td>
                             <td className="p-3 text-muted-foreground" role="cell">
                               {(node.storageUsed / 1024).toFixed(1)} / {(node.storageCapacity / 1024).toFixed(1)} TB
@@ -525,33 +525,22 @@ export default function PNodesPage() {
                             </td>
                             <td className="p-3 text-muted-foreground" role="cell">{node.validations}</td>
                             <td className="p-3 font-semibold text-foreground" role="cell">{node.rewards.toFixed(2)}</td>
-                            <td className="p-3" role="cell">
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleBookmark(node.id)
-                                  }}
-                                  className={bookmarked.has(node.id) ? "text-primary" : ""}
-                                  aria-label={bookmarked.has(node.id) ? "Remove bookmark" : "Add bookmark"}
-                                >
-                                  <Bookmark className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    shareNode(node)
-                                  }}
-                                  aria-label="Share pNode"
-                                >
-                                  <Share2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
+                             <td className="p-3" role="cell">
+                               <div className="flex gap-2">
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={(e) => {
+                                     e.stopPropagation()
+                                     toggleBookmark(node.id)
+                                   }}
+                                   className={bookmarked.has(node.id) ? "text-primary" : ""}
+                                   aria-label={bookmarked.has(node.id) ? "Remove bookmark" : "Add bookmark"}
+                                 >
+                                   <Bookmark className="w-4 h-4" />
+                                 </Button>
+                               </div>
+                             </td>
                           </tr>
                        ))}
                     </tbody>
