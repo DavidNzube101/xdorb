@@ -145,87 +145,109 @@ export default function LeaderboardPage() {
               ) : (
                 <div className="space-y-2 p-2 sm:p-0">
                   {topNodes?.map((node, index) => (
-                    <div
-                      key={node.id}
-                      className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer ${
-                        index < 3
-                          ? "bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30"
-                          : "bg-muted/30 border-border hover:border-primary/50"
-                      }`}
-                      onClick={() => router.push(`/pnodes/${node.id}`)}
-                    >
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <div className="flex items-center justify-center w-8 sm:w-10 min-w-8">{getMedalIcon(index + 1)}</div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <NodeAvatar id={node.id} name={node.name} size="md" variant="server" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1">
-                              <p className="font-semibold">{node.name}</p>
-                              <p className="text-sm">Status: {node.status}</p>
+                     <div
+                       key={node.id}
+                       className={`flex flex-col gap-3 sm:gap-4 p-4 rounded-lg border transition-all cursor-pointer overflow-hidden ${
+                         index < 3
+                           ? "bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30"
+                           : "bg-muted/30 border-border hover:border-primary/50"
+                       }`}
+                       onClick={() => router.push(`/pnodes/${node.id}`)}
+                     >
+                       <div className="flex items-center gap-3 sm:gap-4 w-full">
+                         <div className="flex items-center justify-center w-8 sm:w-10 min-w-8 flex-shrink-0">{getMedalIcon(index + 1)}</div>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <div className="flex-shrink-0">
+                               <NodeAvatar id={node.id} name={node.name} size="md" />
+                             </div>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <div className="space-y-1">
+                               <p className="font-semibold">{node.name}</p>
+                               <p className="text-sm">Status: {node.status}</p>
                                <p className="text-sm">Uptime: {node.uptime}s</p>
-                              <p className="text-sm">Latency: {node.latency}ms</p>
-                              <p className="text-sm">Stake: {node.stake.toLocaleString()}</p>
-                              <p className="text-sm">Risk Score: {node.riskScore}</p>
-                              <p className="text-sm text-primary font-medium">XDN Score: {node.xdnScore.toFixed(1)}</p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                        
-                        {/* Mobile: Name and Badges grouped */}
-                        <div className="flex-1 sm:hidden">
-                           <p className="font-semibold text-foreground truncate">{node.name}</p>
-                           <p className="text-xs text-muted-foreground truncate">{node.location}</p>
-                        </div>
-                      </div>
+                               <p className="text-sm">Latency: {node.latency}ms</p>
+                               <p className="text-sm">Stake: {node.stake.toLocaleString()}</p>
+                               <p className="text-sm">Risk Score: {node.riskScore}</p>
+                               <p className="text-sm text-primary font-medium">XDN Score: {node.xdnScore.toFixed(1)}</p>
+                             </div>
+                           </TooltipContent>
+                         </Tooltip>
 
-                      <div className="flex-1 hidden sm:block">
-                        <p className="font-semibold text-foreground">{node.name}</p>
-                        <p className="text-sm text-muted-foreground">{node.location}</p>
-                        <div className="flex gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                             {node.uptime}s uptime
-                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {node.latency}ms latency
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Mobile Stats Row */}
-                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
-                        <div className="sm:hidden flex gap-2">
-                              <Badge variant="outline" className="text-xs h-6">
-                                 {node.uptime}s
+                         {/* Mobile: Compact layout */}
+                         <div className="flex-1 min-w-0 sm:hidden">
+                           <div className="flex items-center justify-between">
+                             <div className="min-w-0 flex-1">
+                               <p className="font-semibold text-foreground truncate">{node.name}</p>
+                               <p className="text-xs text-muted-foreground truncate">{node.location}</p>
+                             </div>
+                             <div className="flex items-center gap-2 ml-2">
+                               <div className="text-right">
+                                 <p className="font-bold text-primary text-sm">{node.xdnScore.toFixed(1)}</p>
+                                 <p className="text-xs text-muted-foreground">XDN</p>
+                               </div>
+                               <Badge
+                                 variant="outline"
+                                 className={`text-xs h-6 flex-shrink-0 ${
+                                   node.status === "active"
+                                     ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                                     : node.status === "warning"
+                                       ? "bg-yellow-500/20 text-yellow-600"
+                                       : "bg-red-500/20 text-red-600"
+                                 }`}
+                               >
+                                 {node.status}
                                </Badge>
-                              <Badge variant="outline" className="text-xs h-6">
-                                {node.latency}ms
-                              </Badge>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 ml-auto">
-                            <div className="text-right">
-                              <p className="font-bold text-primary text-lg">{node.xdnScore.toFixed(1)}</p>
-                              <p className="text-xs text-muted-foreground">XDN Score</p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={`${
-                                node.status === "active"
-                                  ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                  : node.status === "warning"
-                                    ? "bg-yellow-500/20 text-yellow-600"
-                                    : "bg-red-500/20 text-red-600"
-                              }`}
-                            >
-                              {node.status}
-                            </Badge>
-                        </div>
-                      </div>
-                    </div>
+                             </div>
+                           </div>
+                           {/* Mobile badges in scrollable row */}
+                           <div className="flex gap-1 mt-2 overflow-x-auto pb-1">
+                             <Badge variant="outline" className="text-xs flex-shrink-0 h-5">
+                               {node.uptime}s
+                             </Badge>
+                             <Badge variant="outline" className="text-xs flex-shrink-0 h-5">
+                               {node.latency}ms
+                             </Badge>
+                           </div>
+                         </div>
+
+                         {/* Desktop: Full layout */}
+                         <div className="flex-1 hidden sm:flex sm:items-center">
+                           <div className="flex-1">
+                             <p className="font-semibold text-foreground">{node.name}</p>
+                             <p className="text-sm text-muted-foreground">{node.location}</p>
+                             <div className="flex gap-2 mt-1">
+                               <Badge variant="outline" className="text-xs">
+                                 {node.uptime}s uptime
+                               </Badge>
+                               <Badge variant="outline" className="text-xs">
+                                 {node.latency}ms latency
+                               </Badge>
+                             </div>
+                           </div>
+
+                           <div className="flex items-center gap-4 ml-4">
+                             <div className="text-right">
+                               <p className="font-bold text-primary text-lg">{node.xdnScore.toFixed(1)}</p>
+                               <p className="text-xs text-muted-foreground">XDN Score</p>
+                             </div>
+                             <Badge
+                               variant="outline"
+                               className={`${
+                                 node.status === "active"
+                                   ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                                   : node.status === "warning"
+                                     ? "bg-yellow-500/20 text-yellow-600"
+                                     : "bg-red-500/20 text-red-600"
+                               }`}
+                             >
+                               {node.status}
+                             </Badge>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
                   ))}
                 </div>
               )}
