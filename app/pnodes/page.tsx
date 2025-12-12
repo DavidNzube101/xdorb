@@ -417,12 +417,12 @@ export default function PNodesPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {filtered?.map((node, index) => (
+                            {pnodes?.map((node, index) => (
                               <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                 <td className="border border-gray-300 px-4 py-2">{node.name}</td>
                                 <td className="border border-gray-300 px-4 py-2">{node.location}</td>
                                 <td className="border border-gray-300 px-4 py-2">{node.status}</td>
-                                <td className="border border-gray-300 px-4 py-2">{node.uptime}%</td>
+                                <td className="border border-gray-300 px-4 py-2">{node.uptime.toFixed(0)}%</td>
                                 <td className="border border-gray-300 px-4 py-2">{node.latency}ms</td>
                                 <td className="border border-gray-300 px-4 py-2">{node.validations}</td>
                                 <td className="border border-gray-300 px-4 py-2">{node.rewards.toFixed(2)}</td>
