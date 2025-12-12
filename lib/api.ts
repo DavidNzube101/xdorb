@@ -34,8 +34,15 @@ export interface DashboardStats {
   timestamp: number
 }
 
+export interface Pagination {
+  total: number
+  page: number
+  limit: number
+}
+
 export interface ApiResponse<T> {
   data: T
+  pagination?: Pagination
   error: string | null
   timestamp: number
 }
@@ -74,6 +81,7 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
 
     return {
       data: result.data as T,
+      pagination: result.pagination,
       error: null,
       timestamp: Date.now(),
     }
@@ -81,6 +89,7 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
     console.error(`[v0] API fetch error on ${endpoint}:`, error)
     return {
       data: {} as T,
+      pagination: undefined,
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: Date.now(),
     }
@@ -93,8 +102,8 @@ export const apiClient = {
   getDashboardStats: () => fetchFromApi<DashboardStats>("/dashboard/stats"),
 
   // pNode Management
-  getPNodes: (filters?: { status?: string; location?: string }) =>
-    fetchFromApi<PNodeMetrics[]>(`/pnodes?${new URLSearchParams(filters as Record<string, string>).toString()}`),
+  getPNodes: (filters?: { status?: string; location?: string; page?: number; limit?: number }) =>
+    fetchFromApi<PNodeMetrics[]>(`/pnodes?${new URLSearchParams(filters as any).toString()}`),
 
   refreshData: () => fetchFromApi<PNodeMetrics[]>("/pnodes/refresh", { method: "POST" }),
 

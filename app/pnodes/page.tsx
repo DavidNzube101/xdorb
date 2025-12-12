@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import useSWR from "swr"
 import Papa from "papaparse"
 import jsPDF from 'jspdf'
@@ -19,45 +19,71 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PriceMarquee } from "@/components/price-marquee"
 import { BuyXandButton } from "@/components/buy-xand-button"
 
-const fetcher = async () => {
-  const result = await apiClient.getPNodes()
-  if (result.error) throw new Error(result.error)
+const ITEMS_PER_PAGE = 15
 
-  // Check registration status for each pNode
-  const pnodesWithRegistration = await Promise.all(
-    result.data.map(async (pnode: any) => {
-      try {
-        const regResult = await apiClient.checkPNodeRegistered(pnode.id)
-        return { ...pnode, registered: regResult.data?.registered || false }
-      } catch (error) {
-        console.warn(`Failed to check registration for pNode ${pnode.id}:`, error)
-        return { ...pnode, registered: false }
-      }
-    })
-  )
+const fetcher = ([url, page, limit, status, region, search]: [string, number, number, string, string, string]) => {
+  const filters: any = { page, limit }
+  if (status && status !== 'all') filters.status = status
+  if (region && region !== 'all') filters.region = region
+  if (search) filters.search = search
 
-  return pnodesWithRegistration
+  return apiClient.getPNodes(filters)
 }
 
 export default function PNodesPage() {
-  // All hooks must be called in the same order every render
-  const { data: pnodes, isLoading, mutate } = useSWR(
-    "/pnodes",
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
+  const [regionFilter, setRegionFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search)
+      setCurrentPage(1) // Reset to first page on new search
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [search])
+
+  const { data: result, isLoading, mutate } = useSWR(
+    [`/pnodes`, currentPage, ITEMS_PER_PAGE, statusFilter, regionFilter, debouncedSearch],
     fetcher,
     {
       refreshInterval: 30000,
       revalidateOnMount: true,
-      dedupingInterval: 5000
+      dedupingInterval: 5000,
     }
   )
+
+  const [pnodes, setPnodes] = useState<any[]>([])
+  const [pagination, setPagination] = useState<any>(null)
+
+  useEffect(() => {
+    if (result?.data) {
+      const checkRegistrations = async () => {
+        const pnodesWithRegistration = await Promise.all(
+          result.data.map(async (pnode: any) => {
+            try {
+              const regResult = await apiClient.checkPNodeRegistered(pnode.id)
+              return { ...pnode, registered: regResult.data?.registered || false }
+            } catch (error) {
+              console.warn(`Failed to check registration for pNode ${pnode.id}:`, error)
+              return { ...pnode, registered: false }
+            }
+          })
+        )
+        setPnodes(pnodesWithRegistration)
+        setPagination(result.pagination)
+      }
+      checkRegistrations()
+    }
+  }, [result])
+
+
   const fetchPNodes = () => mutate()
 
-  const [search, setSearch] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
-  const [regionFilter, setRegionFilter] = useState<string>("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
   const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bookmarked-pnodes')
@@ -72,16 +98,8 @@ export default function PNodesPage() {
   const handleReload = async () => {
     setReloading(true)
     try {
-      const result = await apiClient.refreshData()
-      if (result.error) {
-        console.error("Reload failed:", result.error)
-      } else {
-        mutate(result.data, false)
-        setStatusFilter("all")
-        setRegionFilter("all")
-        setSearch("")
-        setCurrentPage(1)
-      }
+      await apiClient.refreshData()
+      mutate() // Re-fetch current page
     } catch (error) {
       console.error("Reload error:", error)
     } finally {
@@ -112,20 +130,12 @@ export default function PNodesPage() {
     }
   }
 
-  const filtered = Array.isArray(pnodes)
-    ? pnodes.filter((node) => {
-        const matchesSearch =
-          node.name.toLowerCase().includes(search.toLowerCase()) ||
-          node.location.toLowerCase().includes(search.toLowerCase())
-        const matchesStatus = statusFilter === "all" || node.status === statusFilter
-        const matchesRegion = regionFilter === "all" || node.region === regionFilter
-        return matchesSearch && matchesStatus && matchesRegion
-      })
-    : []
-
-  const regions = Array.isArray(pnodes)
-    ? Array.from(new Set(pnodes.map(node => node.region))).filter(Boolean)
-    : []
+  const regions = useMemo(() => {
+    // This is not ideal as it only knows about regions on the current page.
+    // A dedicated regions endpoint would be better.
+    if (!pnodes) return []
+    return Array.from(new Set(pnodes.map(node => node.region))).filter(Boolean)
+  }, [pnodes])
 
   // Search Suggestions Logic
   const suggestions = useMemo(() => {
@@ -140,18 +150,16 @@ export default function PNodesPage() {
   }, [search, pnodes])
 
   // Pagination
-  const totalPages = Math.ceil((filtered?.length || 0) / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedNodes = filtered?.slice(startIndex, startIndex + itemsPerPage) || []
+  const totalPages = pagination ? Math.ceil(pagination.total / pagination.limit) : 0
 
   const exportToCSV = () => {
-    if (!filtered) return
+    if (!pnodes) return
 
-    const csvData = filtered.map(node => ({
+    const csvData = pnodes.map(node => ({
       Name: node.name,
       Location: node.location,
       Status: node.status,
-      Uptime: `${node.uptime}%`,
+      Uptime: `${node.uptime.toFixed(0)}%`,
       Latency: `${node.latency}ms`,
       Validations: node.validations,
       Rewards: node.rewards.toFixed(2),
@@ -170,7 +178,7 @@ export default function PNodesPage() {
   }
 
   const exportToPDF = async () => {
-    if (!filtered) return
+    if (!pnodes) return
 
     try {
       const doc = new jsPDF()
@@ -178,11 +186,11 @@ export default function PNodesPage() {
       doc.text('pNodes Directory', 20, 30)
 
       const headers = ['Name', 'Location', 'Status', 'Uptime', 'Latency', 'Validations', 'Rewards']
-      const data = filtered.map(node => [
+      const data = pnodes.map(node => [
         node.name,
         node.location,
         node.status,
-        `${node.uptime}%`,
+        `${node.uptime.toFixed(0)}%`,
         `${node.latency}ms`,
         node.validations.toString(),
         node.rewards.toFixed(2)
@@ -444,7 +452,7 @@ export default function PNodesPage() {
                <div className="flex items-center justify-between">
                  <div>
                    <CardTitle>Active Nodes</CardTitle>
-                   <CardDescription>{filtered?.length || 0} nodes found</CardDescription>
+                   <CardDescription>{pagination?.total || 0} nodes found</CardDescription>
                  </div>
                  <div className="flex gap-2">
                    <Button
@@ -471,9 +479,9 @@ export default function PNodesPage() {
                </div>
              </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isLoading && pnodes.length === 0 ? (
                 <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
+                  {[...Array(5)].map((_, i) => (
                     <div key={i} className="h-16 bg-muted rounded animate-pulse" />
                   ))}
                 </div>
@@ -485,7 +493,7 @@ export default function PNodesPage() {
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Name</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Location</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Status</th>
-                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime (s)</th>
+                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Uptime (%)</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Latency</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Storage</th>
                          <th className="text-left p-3 font-semibold text-foreground" role="columnheader" aria-sort="none">Last Seen</th>
@@ -495,7 +503,7 @@ export default function PNodesPage() {
                         </tr>
                       </thead>
                      <tbody>
-                        {paginatedNodes.map((node) => (
+                        {pnodes.map((node) => (
                           <tr
                             key={node.id}
                             className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
@@ -545,10 +553,10 @@ export default function PNodesPage() {
                                 {node.status.charAt(0).toUpperCase() + node.status.slice(1)}
                               </Badge>
                             </td>
-                            <td className="p-3 text-muted-foreground" role="cell">{node.uptime}s</td>
+                            <td className="p-3 text-muted-foreground" role="cell">{node.uptime.toFixed(0)}%</td>
                             <td className="p-3 text-muted-foreground" role="cell">{node.latency}ms</td>
                             <td className="p-3 text-muted-foreground" role="cell">
-                              {(node.storageUsed / 1024).toFixed(1)} / {(node.storageCapacity / 1024).toFixed(1)} TB
+                              {(node.storageUsed / (1024 ** 4)).toFixed(2)} / {(node.storageCapacity / (1024 ** 4)).toFixed(2)} TB
                             </td>
                             <td className="p-3 text-muted-foreground" role="cell">
                               {new Date(node.lastSeen).toLocaleString()}
@@ -582,29 +590,31 @@ export default function PNodesPage() {
 
            {/* Pagination */}
            {totalPages > 1 && (
-         <div className="flex items-center justify-between">
-           <div className="flex gap-2">
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={() => window.location.reload()}
-               className="gap-2"
-             >
-               <RotateCcw className="w-4 h-4" />
-               Hard Reload
-             </Button>
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={fetchPNodes}
-               disabled={isLoading}
-               className="gap-2"
-             >
-               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-               Refresh
-             </Button>
-           </div>
-         </div>
+             <div className="flex items-center justify-between pt-4">
+               <div className="text-sm text-muted-foreground">
+                 Page {pagination?.page || 0} of {totalPages}
+               </div>
+               <div className="flex gap-2">
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                   disabled={currentPage === 1}
+                 >
+                   <ChevronLeft className="w-4 h-4 mr-2" />
+                   Previous
+                 </Button>
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                   disabled={currentPage === totalPages || totalPages === 0}
+                 >
+                   Next
+                   <ChevronRight className="w-4 h-4 ml-2" />
+                 </Button>
+               </div>
+             </div>
            )}
         </div>
       </DashboardLayout>
