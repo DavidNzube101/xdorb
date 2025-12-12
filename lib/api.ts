@@ -40,17 +40,29 @@ export interface ApiResponse<T> {
 }
 
 // Backend API endpoints
-const API_BASE = "/api"
+const API_BASE = process.env.API_BASE || "/api"
+const API_KEY = process.env.API_KEY
 
 async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+
+    // Add authorization header for external backend calls
+    if (API_KEY && API_BASE.startsWith('http')) {
+      headers["Authorization"] = `Bearer ${API_KEY}`
+    }
+
+    // Merge with any additional headers from options
+    if (options?.headers) {
+      Object.assign(headers, options.headers as Record<string, string>)
+    }
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       cache: 'no-store', // Disable caching to ensure fresh data
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      headers,
     })
 
     if (!response.ok) {

@@ -9,6 +9,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@google/generative-ai": "^0.24.1",
     "@gorbag/wallet-adapter": "^1.1.1",
     "@hookform/resolvers": "^3.10.0",
