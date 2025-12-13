@@ -21,6 +21,12 @@ export interface PNodeMetrics {
   riskScore: number
   xdnScore: number
   registered?: boolean
+  version?: string
+  cpuPercent?: number
+  memoryUsed?: number
+  memoryTotal?: number
+  packetsIn?: number
+  packetsOut?: number
 }
 
 export interface DashboardStats {
@@ -109,8 +115,6 @@ export const apiClient = {
 
   getPNodeById: (id: string) => fetchFromApi<PNodeMetrics>(`/pnodes/${id}`),
 
-  checkPNodeRegistered: (id: string) => fetchFromApi<{ registered: boolean }>(`/pnodes/${id}/registered`),
-
   updatePNode: (id: string, data: Partial<PNodeMetrics>) =>
     fetchFromApi<PNodeMetrics>(`/pnodes/${id}`, {
       method: "PUT",
@@ -163,6 +167,14 @@ export const apiClient = {
     fetchFromApi<any>(`/jupiter/quote?${queryString}`),
 
   getHistoricalPNodes: () => fetchFromApi<PNodeMetrics[]>("/pnodes/historical"),
+
+  getIntelligentNetworkSummary: () => fetchFromApi<{ summary: string }>("/ai/network-summary"),
+
+  compareNodes: (node1: PNodeMetrics, node2: PNodeMetrics) =>
+    fetchFromApi<{ comparison: string }>("/ai/compare-nodes", {
+      method: "POST",
+      body: JSON.stringify({ node1, node2 }),
+    }),
 
   // Clear cache manually if needed (No-op now)
   clearCache: () => {},

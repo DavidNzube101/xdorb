@@ -9,12 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowUp, ArrowDown, Activity, Zap, Award, TrendingUp, Bot, MessageCircle, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { NetworkHealthChart } from "@/components/charts/network-health-chart"
-import { ValidationRateChart } from "@/components/charts/validation-rate-chart"
-import { RewardDistribution } from "@/components/reward-distribution"
-import { PerformanceMetrics } from "@/components/performance-metrics"
-
-import { CustomizableWidgets } from "@/components/customizable-widgets"
 import { NotificationManager } from "@/components/notification-manager"
 import { EmbeddableWidgets } from "@/components/embeddable-widgets"
 
@@ -189,25 +183,6 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <NetworkHealthChart />
-          <ValidationRateChart />
-        </div>
-
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <RewardDistribution />
-          </div>
-          <div className="lg:col-span-2">
-            <PerformanceMetrics />
-          </div>
-        </div>
-
-         {/* Customizable Widgets */}
-         <CustomizableWidgets />
-
          {/* Notifications */}
          <NotificationManager />
 
@@ -219,8 +194,8 @@ export default function DashboardPage() {
             <Card className="border-border bg-card">
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground mb-2">Network Health</p>
-                <p className="text-2xl font-bold text-foreground">{stats.networkHealth.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground mt-1">Fetched {stats.totalNodes} nodes in {stats.fetchTime.toFixed(1)}s</p>
+                <p className="text-2xl font-bold text-foreground">{stats.networkHealth?.toFixed(1) ?? 'N/A'}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Fetched {stats.totalNodes || 'N/A'} nodes in {stats.fetchTime?.toFixed(1) ?? 'N/A'}s</p>
               </CardContent>
             </Card>
           )}
