@@ -87,7 +87,7 @@ export default function PNodesPage() {
   }, [search])
 
   const filteredPnodes = useMemo(() => {
-    if (!result?.data) return [];
+    if (!result?.data || !Array.isArray(result.data)) return [];
     return result.data.filter(node => {
         const statusMatch = statusFilter === 'all' || node.status === statusFilter;
         const regionMatch = regionFilter === 'all' || node.region === regionFilter;
