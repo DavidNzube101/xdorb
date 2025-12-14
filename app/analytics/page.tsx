@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { StorageVisualization } from "@/components/storage-visualization"
 import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Share2, Download, Brain, ArrowRight, Zap, HelpCircle, Loader2 } from "lucide-react"
@@ -13,7 +12,25 @@ import { Typewriter } from "@/components/typewriter"
 import { SearchableNodeSelect } from "@/components/SearchableNodeSelect"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import dynamic from 'next/dynamic'
 
+const StorageVisualization = dynamic(
+  () => import('@/components/storage-visualization').then(mod => mod.StorageVisualization),
+  { 
+    ssr: false,
+    loading: () => (
+      <Card className="border-border bg-card flex flex-col min-h-[500px]">
+        <CardHeader>
+          <CardTitle>Storage Visualization</CardTitle>
+          <CardDescription>Loading visualization...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    )
+  }
+)
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)

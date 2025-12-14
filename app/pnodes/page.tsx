@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EngagingLoader } from "@/components/engaging-loader"
@@ -348,7 +348,7 @@ export default function PNodesPage() {
                                             <div className="flex items-center gap-1">
                                                 Last Seen
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setTimeFormat(p => p === 'absolute' ? 'relative' : 'absolute')}>
-                                                    <Clock className="w-4 h-4" />
+                                                    <Eye className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         </th>
