@@ -257,13 +257,12 @@ export default function PNodeDetailPage() {
                                   </div>
                                   
                                   <div className="grid grid-cols-2 gap-4">
-                                       <div className="border p-4 rounded-lg bg-card">
-                                          <p className="text-sm text-muted-foreground mb-1">Status</p>
-                                          <div className="flex items-center gap-2">
-                                              <div className={`w-2 h-2 rounded-full ${node.status === "active" ? "bg-green-500" : "bg-red-500"}`} />
-                                              <span className="font-semibold capitalize">{node.status}</span>
-                                          </div>
-                                       </div>
+                                        <div className="border p-4 rounded-lg bg-card">
+                                           <p className="text-sm text-muted-foreground mb-1">Memory</p>
+                                           <p className="text-xl font-bold">
+                                             {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
+                                           </p>
+                                        </div>
                                        <div className="border p-4 rounded-lg bg-card">
                                           <p className="text-sm text-muted-foreground mb-1">Uptime</p>
                                           <p className="text-xl font-bold">{formatUptime(node.uptime)}</p>
@@ -353,11 +352,10 @@ export default function PNodeDetailPage() {
             <div className="grid grid-cols-2 gap-4 lg:order-2 order-2 h-full">
                 <Card className="border-border bg-card flex flex-col justify-center">
                   <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground mb-2">Status</p>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${node.status === "active" ? "bg-green-500" : node.status === "warning" ? "bg-primary" : "bg-red-500"}`} />
-                      <span className="font-semibold text-foreground capitalize">{node.status}</span>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">Memory</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -462,17 +460,10 @@ export default function PNodeDetailPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Memory</p>
-                          <p className="text-foreground">
-                            {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Packets (In/Out)</p>
-                          <p className="text-foreground">{node.packetsIn ?? '-'} / {node.packetsOut ?? '-'}</p>
-                        </div>
+                         <div>
+                           <p className="text-sm text-muted-foreground mb-1">Packets (In/Out)</p>
+                           <p className="text-foreground"><span className="text-blue-500">{node.packetsIn ?? '-'}</span> / <span className="text-green-500">{node.packetsOut ?? '-'}</span></p>
+                         </div>
 
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">Risk Score</p>

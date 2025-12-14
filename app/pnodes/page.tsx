@@ -74,7 +74,7 @@ export default function PNodesPage() {
     }
   }, [view, isMobile]);
 
-  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher)
+  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher, { refreshInterval: 60000 })
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
 
   // Debounce search input
@@ -290,7 +290,7 @@ export default function PNodesPage() {
                         <div>
                             <CardTitle>{statsResult?.data?.activeNodes ?? '-'}/{statsResult?.data?.totalNodes ?? '-'} Active</CardTitle>
                             <CardDescription>
-                                Fetched {statsResult?.data?.totalNodes ?? filteredPnodes.length} nodes in {statsResult?.data?.fetchTime.toFixed(2) ?? '-'}s
+                                Fetched {filteredPnodes.length} nodes in {statsResult?.data?.fetchTime.toFixed(2) ?? '-'}s
                             </CardDescription>
                         </div>
                         <div className="flex gap-2 items-center">
