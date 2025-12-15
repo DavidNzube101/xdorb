@@ -153,3 +153,8 @@
 .animate-gradient-x {
     animation: gradient-x 4s ease infinite;
 }
+
+/* High z-index for Solana wallet modal to ensure it's on top of other elements */
+.wallet-adapter-modal-root {
+  z-index: 10000 !important;
+}

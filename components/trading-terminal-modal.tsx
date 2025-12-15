@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { SwapUI } from '@/components/ui/swap-ui'
 import { TRADING_PAIRS, DEFAULT_PAIR } from '@/lib/trading-pairs'
 import { cn } from '@/lib/utils'
@@ -21,18 +20,18 @@ const AdvancedRealTimeChart = dynamic(
 interface TradingTerminalModalProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
+  onConnectClick: () => void
 }
 
-export function TradingTerminalModal({ isOpen, onOpenChange }: TradingTerminalModalProps) {
+export function TradingTerminalModal({ isOpen, onOpenChange, onConnectClick }: TradingTerminalModalProps) {
   const { connected } = useWallet()
-  const { setVisible } = useWalletModal()
   const [activePair, setActivePair] = useState(DEFAULT_PAIR)
 
   const pairInfo = TRADING_PAIRS[activePair as keyof typeof TRADING_PAIRS]
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed inset-0 md:inset-4 bg-black border-2 animate-shimmer-border rounded-none md:rounded-lg flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent size="fullscreen" className="md:inset-4 bg-black border-2 animate-shimmer-border rounded-none md:rounded-lg flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>XAND Trading Terminal</DialogTitle>
           <DialogDescription>
@@ -78,7 +77,7 @@ export function TradingTerminalModal({ isOpen, onOpenChange }: TradingTerminalMo
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                   <p className="text-center text-gray-400">Connect your wallet to start trading.</p>
-                  <Button onClick={() => setVisible(true)}>Connect Wallet</Button>
+                  <Button onClick={onConnectClick}>Connect Wallet</Button>
                 </div>
               )}
             </div>

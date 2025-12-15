@@ -13,27 +13,44 @@ import { TradingTerminalModal } from './trading-terminal-modal'
 export function BuyXandButton() {
   const { connected, publicKey, disconnect } = useWallet()
   const { setVisible, visible } = useWalletModal()
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTerminalOpen, setIsTerminalOpen] = useState(false)
+  const [walletSource, setWalletSource] = useState<'buy-xand' | 'terminal' | null>(null)
 
-  // Ref to track previous connection status to detect change
-  const prevConnected = useRef(connected)
+  const prevVisible = useRef(visible)
 
-  // Effect to re-open the modal after successful connection
   useEffect(() => {
-    // If the wallet modal is now hidden, and we just connected
-    if (!visible && !prevConnected.current && connected) {
-      setIsModalOpen(true)
+    // When wallet modal closes, re-open the modal that triggered it
+    if (prevVisible.current && !visible && walletSource) {
+      if (walletSource === 'buy-xand') {
+        setIsModalOpen(true)
+      } else if (walletSource === 'terminal') {
+        setIsTerminalOpen(true)
+      }
+      setWalletSource(null)
     }
-    // Update previous connected state for the next render
-    prevConnected.current = connected
-  }, [visible, connected])
+    prevVisible.current = visible
+  }, [visible, walletSource])
 
-  // Handler to prevent modal stacking issues
   const handleConnectClick = () => {
-    setIsModalOpen(false) // Close our modal first
-    setVisible(true)      // Then open the wallet modal
+    setIsModalOpen(false)
+    setWalletSource('buy-xand')
+    setVisible(true)
+  }
+
+  const handleTerminalConnectClick = () => {
+    setIsTerminalOpen(false)
+    setWalletSource('terminal')
+    setVisible(true)
+  }
+
+  const handleTerminalChange = (open: boolean) => {
+    if (!open) {
+      // Using a timeout to allow the modal to close gracefully before reload
+      setTimeout(() => window.location.reload(), 300);
+    }
+    setIsTerminalOpen(open);
   }
 
   return (
@@ -45,7 +62,11 @@ export function BuyXandButton() {
         Buy XAND
       </Button>
 
-      <TradingTerminalModal isOpen={isTerminalOpen} onOpenChange={setIsTerminalOpen} />
+      <TradingTerminalModal
+        isOpen={isTerminalOpen}
+        onOpenChange={handleTerminalChange}
+        onConnectClick={handleTerminalConnectClick}
+      />
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className={`sm:max-w-[425px] transition-all duration-500 bg-black ${connected ? 'animate-shimmer-border border-2' : ''}`}>

@@ -121,28 +121,25 @@ export function SwapUI() {
   }, [inputAmount, inputMintInfo, outputMintInfo, slippage])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setInputAmount(value);
-    if (value && parseFloat(value) > 0) {
-      setIsLoadingQuote(true);
-      setQuoteError(null);
-      setOutputAmount('0');
-      setQuoteResponse(null);
-    } else {
-      setIsLoadingQuote(false);
-      setQuoteError(null);
-      setOutputAmount('0');
-      setQuoteResponse(null);
-    }
+    setInputAmount(e.target.value);
   }
 
   useEffect(() => {
     if (!inputAmount || parseFloat(inputAmount) <= 0) {
+      setOutputAmount('0')
+      setQuoteResponse(null)
+      setQuoteError(null)
+      setIsLoadingQuote(false)
       return;
     }
+
+    setIsLoadingQuote(true);
+    setQuoteError(null);
+
     const handler = setTimeout(() => {
       fetchQuote()
     }, 500)
+
     return () => clearTimeout(handler)
   }, [inputAmount, inputMint, slippage, fetchQuote])
 
