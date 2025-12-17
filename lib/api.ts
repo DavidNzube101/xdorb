@@ -115,6 +115,8 @@ export const apiClient = {
 
   getPNodeById: (id: string) => fetchFromApi<PNodeMetrics>(`/pnodes/${id}`),
 
+  getPNodeMetrics: (id: string) => fetchFromApi<PNodeMetrics>(`/pnodes/${id}/metrics`),
+
   getPNodeRegistrationInfo: (id: string) => fetchFromApi<{ registrationDate: string; registrationTime: string }>(`/pnodes/${id}/registration`),
 
   updatePNode: (id: string, data: Partial<PNodeMetrics>) =>

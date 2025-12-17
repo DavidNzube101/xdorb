@@ -8,17 +8,18 @@ import { useParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { apiClient } from "@/lib/api"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu } from "lucide-react"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from "recharts"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import * as htmlToImage from 'html-to-image'
+import { ChartContainer } from "@/components/ui/chart"
 
 // Dynamically import MapComponent to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("@/components/map-component"), {
@@ -30,7 +31,7 @@ const formatUptime = (seconds: number) => {
   if (!seconds) return "0s"
   
   if (seconds < 60) {
-    return `${seconds.toFixed(2)}s`
+    return `${seconds.toFixed(0)}s`
   }
 
   const d = Math.floor(seconds / (3600 * 24))
@@ -42,8 +43,86 @@ const formatUptime = (seconds: number) => {
   if (h > 0) parts.push(`${h}h`)
   if (m > 0) parts.push(`${m}m`)
   
-  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(2)}s`
+  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
 }
+
+const RealtimeChart = ({ data, dataKey, color, type }: { data: any[], dataKey: string, color: string, type: 'bar' | 'line' }) => (
+    <ChartContainer config={{}} className="h-[60px] w-full">
+        {type === 'bar' ? (
+            <BarChart accessibilityLayer data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                <Bar dataKey={dataKey} fill={color} radius={2} />
+            </BarChart>
+        ) : (
+            <LineChart accessibilityLayer data={data} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
+                <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
+            </LineChart>
+        )}
+    </ChartContainer>
+);
+
+const FullscreenMetricModal = ({ data, onClose }: { data: any, onClose: () => void }) => {
+    if (!data) return null;
+
+    const latestValue = data.history.length > 0 ? data.history[data.history.length - 1].value : 0;
+
+    const getDisplayValue = () => {
+        switch(data.title) {
+            case 'Memory':
+                return data.totalMemory ? `${latestValue.toFixed(2)} / ${data.totalMemory.toFixed(2)} GB` : `${latestValue.toFixed(2)} GB`;
+            case 'Session Uptime':
+                return formatUptime(latestValue);
+            case 'Latency':
+                return `${latestValue.toFixed(0)}ms`;
+            case 'CPU':
+                return `${latestValue.toFixed(1)}%`;
+            default:
+                return latestValue;
+        }
+    }
+
+    return (
+        <Dialog open={data.isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl h-[60vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{data.title}</DialogTitle>
+                    <p className="text-4xl font-bold text-foreground">{getDisplayValue()}</p>
+                </DialogHeader>
+                <div className="flex-1 -mx-6 -mb-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                        {data.chartType === 'bar' ? (
+                            <BarChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                <XAxis hide />
+                                <YAxis />
+                                <RechartsTooltip
+                                    contentStyle={{
+                                        backgroundColor: "var(--color-card)",
+                                        border: "1px solid var(--color-border)",
+                                    }}
+                                />
+                                <Bar dataKey={data.dataKey} fill={data.color} />
+                            </BarChart>
+                        ) : (
+                            <LineChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                <XAxis hide />
+                                <YAxis />
+                                <RechartsTooltip
+                                    contentStyle={{
+                                        backgroundColor: "var(--color-card)",
+                                        border: "1px solid var(--color-border)",
+                                    }}
+                                />
+                                <Line type="monotone" dataKey={data.dataKey} stroke={data.color} strokeWidth={2} dot={false} />
+                            </LineChart>
+                        )}
+                    </ResponsiveContainer>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function PNodeDetailPage() {
   const params = useParams()
@@ -78,11 +157,74 @@ export default function PNodeDetailPage() {
   const [analysisResult, setAnalysisResult] = useState<string | null>(null)
   const [dynamicRiskScore, setDynamicRiskScore] = useState<number | null>(null)
 
+  // Realtime chart states
+  const [memoryHistory, setMemoryHistory] = useState<{ value: number }[]>([]);
+  const [uptimeHistory, setUptimeHistory] = useState<{ value: number }[]>([]);
+  const [latencyHistory, setLatencyHistory] = useState<{ value: number }[]>([]);
+  const [cpuHistory, setCpuHistory] = useState<{ value: number }[]>([]);
+  
+  const [cardControls, setCardControls] = useState({
+    memory: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+    uptime: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+    latency: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+    cpu: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+  });
+
+  const [modalData, setModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    history: { value: number }[];
+    dataKey: string;
+    color: string;
+    chartType: 'bar' | 'line';
+    totalMemory?: number;
+  } | null>(null);
+
+  const handlePauseToggle = (metric: keyof typeof cardControls, isPaused: boolean) => {
+    setCardControls(prev => ({ ...prev, [metric]: { ...prev[metric], isPaused } }));
+  };
+
+  const handleChartTypeChange = (metric: keyof typeof cardControls, type: 'bar' | 'line') => {
+    setCardControls(prev => ({ ...prev, [metric]: { ...prev[metric], chartType: type } }));
+  };
+
   useEffect(() => {
     if (node) {
       setDynamicRiskScore(node.riskScore)
     }
   }, [node])
+
+  const { data: metricsData } = useSWR(
+    id ? `/pnodes/${id}/metrics` : null,
+    () => apiClient.getPNodeMetrics(id as string),
+    {
+      refreshInterval: 2000,
+      keepPreviousData: true,
+    }
+  );
+
+  useEffect(() => {
+    if (metricsData?.data) {
+      const { cpuPercent, memoryUsed, latency, uptime } = metricsData.data;
+
+      const updateHistory = (prev: { value: number }[], newValue: number | undefined, isPaused: boolean) => {
+        if (isPaused || newValue === undefined) {
+          return prev;
+        }
+        
+        const newHistory = [...prev, { value: newValue }];
+        if (newHistory.length > 20) {
+          newHistory.shift();
+        }
+        return newHistory;
+      };
+
+      setCpuHistory(prev => updateHistory(prev, cpuPercent, cardControls.cpu.isPaused));
+      setMemoryHistory(prev => updateHistory(prev, memoryUsed ? memoryUsed / 1024**3 : 0, cardControls.memory.isPaused));
+      setLatencyHistory(prev => updateHistory(prev, latency, cardControls.latency.isPaused));
+      setUptimeHistory(prev => updateHistory(prev, uptime, cardControls.uptime.isPaused));
+    }
+  }, [metricsData, cardControls]);
 
   const handleStartAnalysis = async () => {
     setAnalyzing(true)
@@ -90,7 +232,7 @@ export default function PNodeDetailPage() {
     
     await new Promise(resolve => setTimeout(resolve, 3000))
     
-    const newRiskScore = Math.floor(Math.random() * 75) + 5; // Random risk score between 5 and 80
+    const newRiskScore = Math.floor(Math.random() * 75) + 5;
     
     const analysis = `Based on the comprehensive scan of Node ${node?.id.slice(0, 8)}...:
 
@@ -174,6 +316,7 @@ export default function PNodeDetailPage() {
   return (
     <TooltipProvider>
       <DashboardLayout>
+        <FullscreenMetricModal data={modalData} onClose={() => setModalData(null)} />
         <div className="space-y-6 pb-20">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -350,37 +493,141 @@ export default function PNodeDetailPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 lg:order-2 order-2 h-full">
-                <Card className="border-border bg-card flex flex-col justify-center">
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground mb-2">Memory</p>
+                <Card className="border-border bg-card flex flex-col">
+                  <CardHeader className="pb-2">
+                    <p className="text-sm text-muted-foreground">Memory</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
+                      {node.memoryUsed && node.memoryTotal ? `${(memoryHistory.length > 0 ? memoryHistory[memoryHistory.length - 1].value : 0).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
                     </p>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1">
+                    <RealtimeChart data={memoryHistory} dataKey="value" color="var(--color-primary)" type={cardControls.memory.chartType} />
                   </CardContent>
+                  <CardFooter className="flex justify-between items-center pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                          <Switch id="pause-memory" checked={!cardControls.memory.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('memory', !isChecked)} size="sm" />
+                          <Label htmlFor="pause-memory" className="text-xs text-muted-foreground">Live</Label>
+                      </div>
+                      <div className="flex items-center">
+                          <div className="flex items-center rounded-md bg-muted p-0.5">
+                              <Button variant={cardControls.memory.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'bar')}>
+                                  <BarChart2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant={cardControls.memory.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'line')}>
+                                  <LineChartIcon className="w-4 h-4" />
+                              </Button>
+                          </div>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                              isOpen: true, title: 'Memory', history: memoryHistory, dataKey: 'value', color: 'var(--color-primary)',
+                              chartType: cardControls.memory.chartType, totalMemory: node.memoryTotal ? (node.memoryTotal / 1024**3) : undefined,
+                          })}>
+                              <Expand className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-card flex flex-col justify-center">
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground mb-2">Session Uptime</p>
-                    <p className="text-2xl font-bold text-foreground">{formatUptime(node.uptime)}</p>
+                <Card className="border-border bg-card flex flex-col">
+                  <CardHeader className="pb-2">
+                    <p className="text-sm text-muted-foreground">Session Uptime</p>
+                    <p className="text-2xl font-bold text-foreground">{formatUptime(uptimeHistory.length > 0 ? uptimeHistory[uptimeHistory.length - 1].value : node.uptime)}</p>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1">
+                    <RealtimeChart data={uptimeHistory} dataKey="value" color="var(--color-secondary)" type={cardControls.uptime.chartType} />
                   </CardContent>
+                   <CardFooter className="flex justify-between items-center pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                          <Switch id="pause-uptime" checked={!cardControls.uptime.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('uptime', !isChecked)} size="sm" />
+                          <Label htmlFor="pause-uptime" className="text-xs text-muted-foreground">Live</Label>
+                      </div>
+                      <div className="flex items-center">
+                          <div className="flex items-center rounded-md bg-muted p-0.5">
+                              <Button variant={cardControls.uptime.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('uptime', 'bar')}>
+                                  <BarChart2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant={cardControls.uptime.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('uptime', 'line')}>
+                                  <LineChartIcon className="w-4 h-4" />
+                              </Button>
+                          </div>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                              isOpen: true, title: 'Session Uptime', history: uptimeHistory, dataKey: 'value', color: 'var(--color-secondary)',
+                              chartType: cardControls.uptime.chartType,
+                          })}>
+                              <Expand className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-card flex flex-col justify-center">
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-muted-foreground mb-2">Latency</p>
-                    <p className="text-2xl font-bold text-foreground">{node.latency}ms</p>
+                <Card className="border-border bg-card flex flex-col">
+                  <CardHeader className="pb-2">
+                    <p className="text-sm text-muted-foreground">Latency</p>
+                    <p className="text-2xl font-bold text-foreground">
+                        {latencyHistory.length > 0 ? latencyHistory[latencyHistory.length - 1].value.toFixed(0) : node.latency}ms
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1">
+                    <RealtimeChart data={latencyHistory} dataKey="value" color="var(--color-primary)" type={cardControls.latency.chartType} />
                   </CardContent>
+                   <CardFooter className="flex justify-between items-center pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                          <Switch id="pause-latency" checked={!cardControls.latency.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('latency', !isChecked)} size="sm" />
+                          <Label htmlFor="pause-latency" className="text-xs text-muted-foreground">Live</Label>
+                      </div>
+                      <div className="flex items-center">
+                          <div className="flex items-center rounded-md bg-muted p-0.5">
+                              <Button variant={cardControls.latency.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'bar')}>
+                                  <BarChart2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant={cardControls.latency.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'line')}>
+                                  <LineChartIcon className="w-4 h-4" />
+                              </Button>
+                          </div>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                              isOpen: true, title: 'Latency', history: latencyHistory, dataKey: 'value', color: 'var(--color-primary)',
+                              chartType: cardControls.latency.chartType,
+                          })}>
+                              <Expand className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-card flex flex-col justify-center">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-2 mb-2">
+                <Card className="border-border bg-card flex flex-col">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
                         <Cpu className="w-4 h-4 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">CPU</p>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">{node.cpuPercent?.toFixed(1) ?? '-'}%</p>
+                    <p className="text-2xl font-bold text-foreground">
+                        {cpuHistory.length > 0 ? cpuHistory[cpuHistory.length - 1].value.toFixed(1) : node.cpuPercent?.toFixed(1) ?? '-'}%
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1">
+                    <RealtimeChart data={cpuHistory} dataKey="value" color="var(--color-secondary)" type={cardControls.cpu.chartType} />
                   </CardContent>
+                   <CardFooter className="flex justify-between items-center pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                          <Switch id="pause-cpu" checked={!cardControls.cpu.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('cpu', !isChecked)} size="sm" />
+                          <Label htmlFor="pause-cpu" className="text-xs text-muted-foreground">Live</Label>
+                      </div>
+                      <div className="flex items-center">
+                          <div className="flex items-center rounded-md bg-muted p-0.5">
+                              <Button variant={cardControls.cpu.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'bar')}>
+                                  <BarChart2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant={cardControls.cpu.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'line')}>
+                                  <LineChartIcon className="w-4 h-4" />
+                              </Button>
+                          </div>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                              isOpen: true, title: 'CPU', history: cpuHistory, dataKey: 'value', color: 'var(--color-secondary)',
+                              chartType: cardControls.cpu.chartType,
+                          })}>
+                              <Expand className="w-4 h-4" />
+                          </Button>
+                      </div>
+                  </CardFooter>
                 </Card>
             </div>
 
