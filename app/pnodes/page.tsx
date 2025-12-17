@@ -40,6 +40,25 @@ const convertBytes = (bytes: number, unit: 'TB' | 'GB' | 'MB') => {
     return (bytes / units[unit]).toFixed(2);
 };
 
+const formatUptime = (seconds: number) => {
+  if (!seconds) return "0s"
+  
+  if (seconds < 60) {
+    return `${seconds.toFixed(0)}s`
+  }
+
+  const d = Math.floor(seconds / (3600 * 24))
+  const h = Math.floor((seconds % (3600 * 24)) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  
+  const parts = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m}m`)
+  
+  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
+}
+
 export default function PNodesPage() {
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState(search)
@@ -327,7 +346,7 @@ export default function PNodesPage() {
                                         <th className="text-left p-3 font-semibold text-foreground">Name</th>
                                         <th className="text-left p-3 font-semibold text-foreground">Location</th>
                                         <th className="text-left p-3 font-semibold text-foreground hidden md:table-cell">Status</th>
-                                        <th className="text-left p-3 font-semibold text-foreground">Uptime (%)</th>
+                                        <th className="text-left p-3 font-semibold text-foreground">Uptime</th>
                                         <th className="text-left p-3 font-semibold text-foreground">Latency</th>
                                         <th className="text-left p-3 font-semibold text-foreground">
                                             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
@@ -396,7 +415,7 @@ export default function PNodesPage() {
                                         </td>
                                         <td className="p-3 text-muted-foreground">{node.location}</td>
                                         <td className="p-3 hidden md:table-cell"><Badge className={cn(statusBadgeVariant(node.status))}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge></td>
-                                        <td className="p-3 text-muted-foreground">{node.uptime.toFixed(0)}%</td>
+                                        <td className="p-3 text-muted-foreground">{formatUptime(node.uptime)}</td>
                                         <td className="p-3 text-muted-foreground">{node.latency}ms</td>
                                         <td className="p-3 text-muted-foreground">{convertBytes(node.storageUsed, listStorageUnit)} / {convertBytes(node.storageCapacity, listStorageUnit)} {listStorageUnit}</td>
                                         <td className="p-3 text-muted-foreground">{formatLastSeen(node.lastSeen)}</td>

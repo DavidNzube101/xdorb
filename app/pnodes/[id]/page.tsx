@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
 import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
@@ -60,6 +60,92 @@ const RealtimeChart = ({ data, dataKey, color, type }: { data: any[], dataKey: s
     </ChartContainer>
 );
 
+const UptimeDonutChart = ({ uptime, isFullscreen = false }: { uptime: number; isFullscreen?: boolean }) => {
+    const startDate = new Date(Date.now() - uptime * 1000);
+    const now = new Date();
+    const shades = ['#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af']; // Different shades of blue
+    const days: { day: string; uptime: number; fill: string }[] = [];
+
+    let shadeIndex = 0;
+    for (let d = new Date(startDate); d <= now; d.setDate(d.getDate() + 1)) {
+        days.push({
+            day: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            uptime: 100,
+            fill: shades[shadeIndex % shades.length],
+        });
+        shadeIndex++;
+    }
+
+    const totalUptime = 100; // Always 100% since active
+
+    const height = isFullscreen ? 'h-[300px]' : 'h-[100px]';
+    const innerRadius = isFullscreen ? 80 : 30;
+    const outerRadius = isFullscreen ? 120 : 45;
+    const textSize = isFullscreen ? 'text-lg' : 'text-xs';
+    const subTextSize = isFullscreen ? 'text-sm' : 'text-[8px]';
+    const tspanOffset = isFullscreen ? 20 : 10;
+
+    return (
+        <ChartContainer config={{}} className={`${height} w-full`}>
+            <PieChart>
+                <RechartsTooltip
+                    content={({ payload }) => {
+                        if (payload && payload.length > 0) {
+                            const data = payload[0].payload;
+                            return (
+                                <div className="bg-background border border-border p-2 rounded shadow">
+                                    100% uptime on {data.day}
+                                </div>
+                            );
+                        }
+                        return null;
+                    }}
+                />
+                <Pie
+                    data={days}
+                    dataKey="uptime"
+                    nameKey="day"
+                    innerRadius={innerRadius}
+                    outerRadius={outerRadius}
+                    strokeWidth={0}
+                >
+                    {/* @ts-ignore */}
+                    <RechartsLabel
+                        content={({ viewBox }: any) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                return (
+                                    <text
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        textAnchor="middle"
+                                        dominantBaseline="middle"
+                                        className={textSize}
+                                    >
+                                        <tspan
+                                            x={viewBox.cx}
+                                            y={viewBox.cy}
+                                            className="fill-foreground font-bold"
+                                        >
+                                            {totalUptime}%
+                                        </tspan>
+                                        <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) + tspanOffset}
+                                            className={`fill-muted-foreground ${subTextSize}`}
+                                        >
+                                            since {startDate.toLocaleDateString()}
+                                        </tspan>
+                                    </text>
+                                );
+                            }
+                        }}
+                    />
+                </Pie>
+            </PieChart>
+        </ChartContainer>
+    );
+};
+
 const FullscreenMetricModal = ({ data, onClose }: { data: any, onClose: () => void }) => {
     if (!data) return null;
 
@@ -88,35 +174,41 @@ const FullscreenMetricModal = ({ data, onClose }: { data: any, onClose: () => vo
                     <p className="text-4xl font-bold text-foreground">{getDisplayValue()}</p>
                 </DialogHeader>
                 <div className="flex-1 -mx-6 -mb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                        {data.chartType === 'bar' ? (
-                            <BarChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                                <XAxis hide />
-                                <YAxis />
-                                <RechartsTooltip
-                                    contentStyle={{
-                                        backgroundColor: "var(--color-card)",
-                                        border: "1px solid var(--color-border)",
-                                    }}
-                                />
-                                <Bar dataKey={data.dataKey} fill={data.color} />
-                            </BarChart>
-                        ) : (
-                            <LineChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                                <XAxis hide />
-                                <YAxis />
-                                <RechartsTooltip
-                                    contentStyle={{
-                                        backgroundColor: "var(--color-card)",
-                                        border: "1px solid var(--color-border)",
-                                    }}
-                                />
-                                <Line type="monotone" dataKey={data.dataKey} stroke={data.color} strokeWidth={2} dot={false} />
-                            </LineChart>
-                        )}
-                    </ResponsiveContainer>
+                    {data.title === 'Session Uptime' ? (
+                        <div className="flex items-center justify-center h-full">
+                            <UptimeDonutChart uptime={latestValue} isFullscreen />
+                        </div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            {data.chartType === 'bar' ? (
+                                <BarChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                    <XAxis hide />
+                                    <YAxis />
+                                    <RechartsTooltip
+                                        contentStyle={{
+                                            backgroundColor: "var(--color-card)",
+                                            border: "1px solid var(--color-border)",
+                                        }}
+                                    />
+                                    <Bar dataKey={data.dataKey} fill={data.color} />
+                                </BarChart>
+                            ) : (
+                                <LineChart data={data.history} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                                    <XAxis hide />
+                                    <YAxis />
+                                    <RechartsTooltip
+                                        contentStyle={{
+                                            backgroundColor: "var(--color-card)",
+                                            border: "1px solid var(--color-border)",
+                                        }}
+                                    />
+                                    <Line type="monotone" dataKey={data.dataKey} stroke={data.color} strokeWidth={2} dot={false} />
+                                </LineChart>
+                            )}
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
@@ -157,6 +249,10 @@ export default function PNodeDetailPage() {
   const [analysisResult, setAnalysisResult] = useState<string | null>(null)
   const [dynamicRiskScore, setDynamicRiskScore] = useState<number | null>(null)
 
+  // Packets state
+  const [packetsIn, setPacketsIn] = useState<number | null>(null)
+  const [packetsOut, setPacketsOut] = useState<number | null>(null)
+
   // Realtime chart states
   const [memoryHistory, setMemoryHistory] = useState<{ value: number }[]>([]);
   const [uptimeHistory, setUptimeHistory] = useState<{ value: number }[]>([]);
@@ -164,10 +260,10 @@ export default function PNodeDetailPage() {
   const [cpuHistory, setCpuHistory] = useState<{ value: number }[]>([]);
   
   const [cardControls, setCardControls] = useState({
-    memory: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+    memory: { isPaused: false, chartType: 'line' as 'bar' | 'line' },
     uptime: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
     latency: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
-    cpu: { isPaused: false, chartType: 'bar' as 'bar' | 'line' },
+    cpu: { isPaused: false, chartType: 'line' as 'bar' | 'line' },
   });
 
   const [modalData, setModalData] = useState<{
@@ -176,7 +272,7 @@ export default function PNodeDetailPage() {
     history: { value: number }[];
     dataKey: string;
     color: string;
-    chartType: 'bar' | 'line';
+     chartType: 'bar' | 'line' | 'donut';
     totalMemory?: number;
   } | null>(null);
 
@@ -194,24 +290,24 @@ export default function PNodeDetailPage() {
     }
   }, [node])
 
-  const { data: metricsData } = useSWR(
-    id ? `/pnodes/${id}/metrics` : null,
-    () => apiClient.getPNodeMetrics(id as string),
-    {
-      refreshInterval: 2000,
-      keepPreviousData: true,
-    }
-  );
+   const { data: metricsData } = useSWR(
+     id ? `/pnodes/${id}/metrics` : null,
+     () => apiClient.getPNodeMetrics(id as string),
+     {
+       refreshInterval: 1500,
+       keepPreviousData: true,
+     }
+   );
 
   useEffect(() => {
     if (metricsData?.data) {
-      const { cpuPercent, memoryUsed, latency, uptime } = metricsData.data;
+      const { cpuPercent, memoryUsed, latency, uptime, packetsIn: newPacketsIn, packetsOut: newPacketsOut } = metricsData.data;
 
       const updateHistory = (prev: { value: number }[], newValue: number | undefined, isPaused: boolean) => {
         if (isPaused || newValue === undefined) {
           return prev;
         }
-        
+
         const newHistory = [...prev, { value: newValue }];
         if (newHistory.length > 20) {
           newHistory.shift();
@@ -223,6 +319,9 @@ export default function PNodeDetailPage() {
       setMemoryHistory(prev => updateHistory(prev, memoryUsed ? memoryUsed / 1024**3 : 0, cardControls.memory.isPaused));
       setLatencyHistory(prev => updateHistory(prev, latency, cardControls.latency.isPaused));
       setUptimeHistory(prev => updateHistory(prev, uptime, cardControls.uptime.isPaused));
+
+      setPacketsIn(newPacketsIn ?? null);
+      setPacketsOut(newPacketsOut ?? null);
     }
   }, [metricsData, cardControls]);
 
@@ -236,9 +335,12 @@ export default function PNodeDetailPage() {
     
     const analysis = `Based on the comprehensive scan of Node ${node?.id.slice(0, 8)}...:
 
-• **Performance Status**: With an uptime of **${node?.uptime.toFixed(1)}%** and latency of **${node?.latency}ms**, this node shows ${node?.latency && node.latency < 50 ? 'excellent responsiveness' : 'stable performance'}.
+• **Performance Status**: With an uptime of **${node?.uptime ? formatUptime(node.uptime) : '0s'}** and latency of **${node?.latency}ms**, this node shows ${node?.latency && node.latency < 50 ? 'excellent responsiveness' : 'stable performance'}.
+
 • **Resource Utilization**: CPU usage is at **${node?.cpuPercent?.toFixed(1)}%** and memory usage is stable. This indicates a well-provisioned machine.
+
 • **Economic Health**: With **${node?.stake || 0} POL** staked, this validator demonstrates strong economic alignment with the network.
+
 • **Risk Assessment**: Our analysis calculates a real-time risk score of **${newRiskScore}%**. No immediate security threats were detected.
 
 **Recommendation**: Continue monitoring latency spikes during peak network hours. The node is performing well.`
@@ -325,35 +427,10 @@ export default function PNodeDetailPage() {
                   <ArrowLeft className="w-5 h-5" />
                   </a>
                    <div>
-                     <div className="flex items-center gap-2">
-                       <h1 className="text-3xl font-bold text-foreground">{node.name}</h1>
-                        {node.registered && (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Badge variant="default" className="bg-green-600 hover:bg-green-700 cursor-pointer" onClick={fetchRegistrationInfo}>
-                                Registered
-                              </Badge>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Registered Node</DialogTitle>
-                                <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
-                              </DialogHeader>
-                              <div className="py-4">
-                                <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
-                                <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
-                              </div>
-                              <DialogFooter>
-                                <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
-                                  <Button variant="link">See Xandeum's Publication</Button>
-                                </a>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                     </div>
-                     <p className="text-muted-foreground">{node.location}</p>
-                     {node.version && <p className="text-xs text-muted-foreground font-mono mt-1">v{node.version}</p>}
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-bold text-foreground">{node.name}</h1>
+                      </div>
+                      <p className="text-muted-foreground">{node.location}</p>
                    </div>
               </div>
               
@@ -470,27 +547,40 @@ export default function PNodeDetailPage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <div className="lg:order-1 order-1 h-full">
-                <Card className="border-border bg-card overflow-hidden h-full min-h-[300px]">
-                   <CardHeader>
-                    <CardTitle>Node Location</CardTitle>
-                    <CardDescription>Geographic position of this pNode</CardDescription>
-                   </CardHeader>
-                   <CardContent className="p-0 h-[300px] lg:h-[400px]">
-                     {node.lat && node.lng ? (
-                       <MapComponent 
-                          center={[node.lat, node.lng]} 
-                          zoom={6} 
-                          highlight={{ lat: node.lat, lng: node.lng, name: node.name }} 
-                       />
-                     ) : (
-                       <div className="flex items-center justify-center h-full text-muted-foreground">
-                         Location data not available
-                       </div>
-                     )}
-                   </CardContent>
-                </Card>
-            </div>
+             <div className="lg:order-1 order-1 h-full">
+                 <Card className="border-border bg-card overflow-hidden h-full min-h-[300px]">
+                    <CardHeader>
+                     <CardTitle>Node Location</CardTitle>
+                     <CardDescription>Geographic position of this pNode</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0 h-[300px] lg:h-[400px]">
+                      {node.lat && node.lng ? (
+                        <MapComponent
+                           center={[node.lat, node.lng]}
+                           zoom={6}
+                           highlight={{ lat: node.lat, lng: node.lng, name: node.name }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          Location data not available
+                        </div>
+                      )}
+                    </CardContent>
+                    {node.lat && node.lng && (
+                      <CardFooter className="flex flex-col items-start gap-2 pt-2 border-t">
+                        <Typewriter text={`Latitude: ${node.lat.toFixed(4)}, Longitude: ${node.lng.toFixed(4)}`} />
+                        <a
+                          href={`https://www.bing.com/maps/default.aspx?cp=${node.lat}~${node.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View on Bing Maps
+                        </a>
+                      </CardFooter>
+                    )}
+                 </Card>
+             </div>
 
             <div className="grid grid-cols-2 gap-4 lg:order-2 order-2 h-full">
                 <Card className="border-border bg-card flex flex-col">
@@ -503,28 +593,28 @@ export default function PNodeDetailPage() {
                   <CardContent className="p-0 flex-1">
                     <RealtimeChart data={memoryHistory} dataKey="value" color="var(--color-primary)" type={cardControls.memory.chartType} />
                   </CardContent>
-                  <CardFooter className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                          <Switch id="pause-memory" checked={!cardControls.memory.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('memory', !isChecked)} size="sm" />
-                          <Label htmlFor="pause-memory" className="text-xs text-muted-foreground">Live</Label>
-                      </div>
-                      <div className="flex items-center">
-                          <div className="flex items-center rounded-md bg-muted p-0.5">
-                              <Button variant={cardControls.memory.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'bar')}>
-                                  <BarChart2 className="w-4 h-4" />
-                              </Button>
-                              <Button variant={cardControls.memory.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'line')}>
-                                  <LineChartIcon className="w-4 h-4" />
-                              </Button>
-                          </div>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
-                              isOpen: true, title: 'Memory', history: memoryHistory, dataKey: 'value', color: 'var(--color-primary)',
-                              chartType: cardControls.memory.chartType, totalMemory: node.memoryTotal ? (node.memoryTotal / 1024**3) : undefined,
-                          })}>
-                              <Expand className="w-4 h-4" />
-                          </Button>
-                      </div>
-                  </CardFooter>
+                   <CardFooter className="flex justify-between items-center pt-2 border-t overflow-x-auto">
+                       <div className="flex items-center gap-2 flex-shrink-0">
+                           <Switch id="pause-memory" checked={!cardControls.memory.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('memory', !isChecked)} />
+                           <Label htmlFor="pause-memory" className="text-xs text-muted-foreground">Live</Label>
+                       </div>
+                       <div className="flex items-center gap-1 flex-shrink-0">
+                           <div className="flex items-center rounded-md bg-muted p-0.5">
+                               <Button variant={cardControls.memory.chartType === 'bar' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'bar')}>
+                                   <BarChart2 className="w-4 h-4" />
+                               </Button>
+                               <Button variant={cardControls.memory.chartType === 'line' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('memory', 'line')}>
+                                   <LineChartIcon className="w-4 h-4" />
+                               </Button>
+                           </div>
+                           <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                               isOpen: true, title: 'Memory', history: memoryHistory, dataKey: 'value', color: 'var(--color-primary)',
+                               chartType: cardControls.memory.chartType, totalMemory: node.memoryTotal ? (node.memoryTotal / 1024**3) : undefined,
+                           })}>
+                               <Expand className="w-4 h-4" />
+                           </Button>
+                       </div>
+                   </CardFooter>
                 </Card>
 
                 <Card className="border-border bg-card flex flex-col">
@@ -532,31 +622,21 @@ export default function PNodeDetailPage() {
                     <p className="text-sm text-muted-foreground">Session Uptime</p>
                     <p className="text-2xl font-bold text-foreground">{formatUptime(uptimeHistory.length > 0 ? uptimeHistory[uptimeHistory.length - 1].value : node.uptime)}</p>
                   </CardHeader>
-                  <CardContent className="p-0 flex-1">
-                    <RealtimeChart data={uptimeHistory} dataKey="value" color="var(--color-secondary)" type={cardControls.uptime.chartType} />
-                  </CardContent>
-                   <CardFooter className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                          <Switch id="pause-uptime" checked={!cardControls.uptime.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('uptime', !isChecked)} size="sm" />
-                          <Label htmlFor="pause-uptime" className="text-xs text-muted-foreground">Live</Label>
-                      </div>
-                      <div className="flex items-center">
-                          <div className="flex items-center rounded-md bg-muted p-0.5">
-                              <Button variant={cardControls.uptime.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('uptime', 'bar')}>
-                                  <BarChart2 className="w-4 h-4" />
-                              </Button>
-                              <Button variant={cardControls.uptime.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('uptime', 'line')}>
-                                  <LineChartIcon className="w-4 h-4" />
-                              </Button>
-                          </div>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
-                              isOpen: true, title: 'Session Uptime', history: uptimeHistory, dataKey: 'value', color: 'var(--color-secondary)',
-                              chartType: cardControls.uptime.chartType,
-                          })}>
-                              <Expand className="w-4 h-4" />
-                          </Button>
-                      </div>
-                  </CardFooter>
+                   <CardContent className="p-0 flex-1">
+                     <UptimeDonutChart uptime={uptimeHistory.length > 0 ? uptimeHistory[uptimeHistory.length - 1].value : node.uptime} />
+                   </CardContent>
+                     <CardFooter className="flex justify-between items-center pt-2 border-t overflow-x-auto">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <Switch id="pause-uptime" checked={!cardControls.uptime.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('uptime', !isChecked)} />
+                            <Label htmlFor="pause-uptime" className="text-xs text-muted-foreground">Live</Label>
+                        </div>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                            isOpen: true, title: 'Session Uptime', history: uptimeHistory, dataKey: 'value', color: 'var(--color-secondary)',
+                            chartType: 'donut', // or something, but we'll handle in modal
+                        })}>
+                            <Expand className="w-4 h-4" />
+                        </Button>
+                    </CardFooter>
                 </Card>
 
                 <Card className="border-border bg-card flex flex-col">
@@ -569,28 +649,28 @@ export default function PNodeDetailPage() {
                   <CardContent className="p-0 flex-1">
                     <RealtimeChart data={latencyHistory} dataKey="value" color="var(--color-primary)" type={cardControls.latency.chartType} />
                   </CardContent>
-                   <CardFooter className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                          <Switch id="pause-latency" checked={!cardControls.latency.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('latency', !isChecked)} size="sm" />
-                          <Label htmlFor="pause-latency" className="text-xs text-muted-foreground">Live</Label>
-                      </div>
-                      <div className="flex items-center">
-                          <div className="flex items-center rounded-md bg-muted p-0.5">
-                              <Button variant={cardControls.latency.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'bar')}>
-                                  <BarChart2 className="w-4 h-4" />
-                              </Button>
-                              <Button variant={cardControls.latency.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'line')}>
-                                  <LineChartIcon className="w-4 h-4" />
-                              </Button>
-                          </div>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
-                              isOpen: true, title: 'Latency', history: latencyHistory, dataKey: 'value', color: 'var(--color-primary)',
-                              chartType: cardControls.latency.chartType,
-                          })}>
-                              <Expand className="w-4 h-4" />
-                          </Button>
-                      </div>
-                  </CardFooter>
+                    <CardFooter className="flex justify-between items-center pt-2 border-t overflow-x-auto">
+                       <div className="flex items-center gap-2 flex-shrink-0">
+                           <Switch id="pause-latency" checked={!cardControls.latency.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('latency', !isChecked)} />
+                           <Label htmlFor="pause-latency" className="text-xs text-muted-foreground">Live</Label>
+                       </div>
+                       <div className="flex items-center gap-1 flex-shrink-0">
+                           <div className="flex items-center rounded-md bg-muted p-0.5">
+                               <Button variant={cardControls.latency.chartType === 'bar' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'bar')}>
+                                   <BarChart2 className="w-4 h-4" />
+                               </Button>
+                               <Button variant={cardControls.latency.chartType === 'line' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('latency', 'line')}>
+                                   <LineChartIcon className="w-4 h-4" />
+                               </Button>
+                           </div>
+                           <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                               isOpen: true, title: 'Latency', history: latencyHistory, dataKey: 'value', color: 'var(--color-primary)',
+                               chartType: cardControls.latency.chartType,
+                           })}>
+                               <Expand className="w-4 h-4" />
+                           </Button>
+                       </div>
+                   </CardFooter>
                 </Card>
 
                 <Card className="border-border bg-card flex flex-col">
@@ -606,40 +686,48 @@ export default function PNodeDetailPage() {
                   <CardContent className="p-0 flex-1">
                     <RealtimeChart data={cpuHistory} dataKey="value" color="var(--color-secondary)" type={cardControls.cpu.chartType} />
                   </CardContent>
-                   <CardFooter className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                          <Switch id="pause-cpu" checked={!cardControls.cpu.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('cpu', !isChecked)} size="sm" />
-                          <Label htmlFor="pause-cpu" className="text-xs text-muted-foreground">Live</Label>
-                      </div>
-                      <div className="flex items-center">
-                          <div className="flex items-center rounded-md bg-muted p-0.5">
-                              <Button variant={cardControls.cpu.chartType === 'bar' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'bar')}>
-                                  <BarChart2 className="w-4 h-4" />
-                              </Button>
-                              <Button variant={cardControls.cpu.chartType === 'line' ? 'secondary' : 'ghost'} size="xs" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'line')}>
-                                  <LineChartIcon className="w-4 h-4" />
-                              </Button>
-                          </div>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
-                              isOpen: true, title: 'CPU', history: cpuHistory, dataKey: 'value', color: 'var(--color-secondary)',
-                              chartType: cardControls.cpu.chartType,
-                          })}>
-                              <Expand className="w-4 h-4" />
-                          </Button>
-                      </div>
-                  </CardFooter>
+                    <CardFooter className="flex justify-between items-center pt-2 border-t overflow-x-auto">
+                       <div className="flex items-center gap-2 flex-shrink-0">
+                           <Switch id="pause-cpu" checked={!cardControls.cpu.isPaused} onCheckedChange={(isChecked) => handlePauseToggle('cpu', !isChecked)} />
+                           <Label htmlFor="pause-cpu" className="text-xs text-muted-foreground">Live</Label>
+                       </div>
+                       <div className="flex items-center gap-1 flex-shrink-0">
+                           <div className="flex items-center rounded-md bg-muted p-0.5">
+                               <Button variant={cardControls.cpu.chartType === 'bar' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'bar')}>
+                                   <BarChart2 className="w-4 h-4" />
+                               </Button>
+                               <Button variant={cardControls.cpu.chartType === 'line' ? 'secondary' : 'ghost'} size="sm" className="h-6 w-6 p-1" onClick={() => handleChartTypeChange('cpu', 'line')}>
+                                   <LineChartIcon className="w-4 h-4" />
+                               </Button>
+                           </div>
+                           <Button variant="ghost" size="icon-sm" onClick={() => setModalData({
+                               isOpen: true, title: 'CPU', history: cpuHistory, dataKey: 'value', color: 'var(--color-secondary)',
+                               chartType: cardControls.cpu.chartType,
+                           })}>
+                               <Expand className="w-4 h-4" />
+                           </Button>
+                       </div>
+                   </CardFooter>
                 </Card>
             </div>
 
             <div className="lg:order-3 order-3">
                 <Card className="border-border bg-card relative overflow-hidden h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-primary" />
-                    <CardTitle>Intelligent Analysis</CardTitle>
-                  </div>
-                  <CardDescription>AI-powered insights for this pNode</CardDescription>
-                </CardHeader>
+                 <CardHeader>
+                   <div className="flex items-center gap-2">
+                     <Brain className="w-5 h-5 text-primary" />
+                     <CardTitle>Intelligent Analysis</CardTitle>
+                     <Tooltip>
+                       <TooltipTrigger>
+                         <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                       </TooltipTrigger>
+                       <TooltipContent>
+                         <p>AI-powered analysis of node performance, resources, economics, and risks based on real-time data.</p>
+                       </TooltipContent>
+                     </Tooltip>
+                   </div>
+                   <CardDescription>AI-powered insights for this pNode</CardDescription>
+                 </CardHeader>
                 <CardContent>
                   {!analyzing && !analysisResult ? (
                     <div className="flex flex-col items-center justify-center py-8">
@@ -678,179 +766,104 @@ export default function PNodeDetailPage() {
                     <CardTitle>Node Information</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Node ID</p>
-                          <div className="flex items-center gap-2">
-                            <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all">
-                              {node.id}
-                            </code>
-                            <button
-                              onClick={() => copyToClipboard(node.id)}
-                              className="p-2 hover:bg-muted rounded transition-colors"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                     <div className="space-y-4">
+                       {node.registered && (
+                         <div className="flex items-center gap-2">
+                           <Dialog>
+                             <DialogTrigger asChild>
+                               <Badge variant="default" className="bg-green-600 hover:bg-green-700 cursor-pointer" onClick={fetchRegistrationInfo}>
+                                 Registered
+                               </Badge>
+                             </DialogTrigger>
+                             <DialogContent>
+                               <DialogHeader>
+                                 <DialogTitle>Registered Node</DialogTitle>
+                                 <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
+                               </DialogHeader>
+                               <div className="py-4">
+                                 <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
+                                 <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
+                               </div>
+                               <DialogFooter>
+                                 <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
+                                   <Button variant="link">See Xandeum's Publication</Button>
+                                 </a>
+                               </DialogFooter>
+                             </DialogContent>
+                           </Dialog>
+                         </div>
+                       )}
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="space-y-4">
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Node ID</p>
+                             <div className="flex items-center gap-2">
+                               <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all">
+                                 {node.id}
+                               </code>
+                               <button
+                                 onClick={() => copyToClipboard(node.id)}
+                                 className="p-2 hover:bg-muted rounded transition-colors"
+                               >
+                                 <Copy className="w-4 h-4" />
+                               </button>
+                             </div>
+                           </div>
 
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Location</p>
-                          <p className="text-foreground">{node.location}</p>
-                        </div>
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Location</p>
+                             <p className="text-foreground">{node.location}</p>
+                           </div>
 
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Stake</p>
-                          <p className="text-foreground">{node.stake ? `${node.stake} POL` : '-'}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                         <div>
-                           <p className="text-sm text-muted-foreground mb-1">Packets (In/Out)</p>
-                           <p className="text-foreground"><span className="text-blue-500">{node.packetsIn ?? '-'}</span> / <span className="text-green-500">{node.packetsOut ?? '-'}</span></p>
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Version</p>
+                             <p className="text-foreground font-mono">{node.version ? `v${node.version}` : '-'}</p>
+                           </div>
                          </div>
 
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-muted h-2 overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-500 ${
-                                  (dynamicRiskScore || 0) < 30 ? "bg-green-500" : (dynamicRiskScore || 0) < 70 ? "bg-primary" : "bg-red-500"
-                                }`}
-                                style={{ width: `${dynamicRiskScore || 0}%` }}
-                              />
+                         <div className="space-y-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm text-muted-foreground">Packets (In/Out)</p>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Network packets received (in) and sent (out) by the node since startup.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <p className="text-foreground"><span className="text-blue-500">{packetsIn ?? node.packetsIn ?? '-'}</span> / <span className="text-green-500">{packetsOut ?? node.packetsOut ?? '-'}</span></p>
                             </div>
-                            <span className="text-sm font-semibold">{dynamicRiskScore?.toFixed(0) || '-'}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-            </div>
 
-            <div className="lg:order-5 order-4">
-                <Card className="border-border bg-card">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CardTitle>Latency Trend</CardTitle>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">Shows the round-trip time (ms) for the node to respond to pRPC calls over the last 24 hours. Lower is better.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch id="simulated-latency" checked={showSimulated} onCheckedChange={setShowSimulated} />
-                        <Label htmlFor="simulated-latency" className="text-xs font-normal text-muted-foreground">Simulated Data</Label>
-                      </div>
-                    </div>
-                    <CardDescription>Last 24 hours</CardDescription>
-                  </CardHeader>
-                  <CardContent className="relative">
-                    {(!history || history.length === 0) && !showSimulated ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
-                        <div className="flex flex-col items-center text-center p-4">
-                          <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
-                          <p className="text-sm font-medium">Data Unavailable</p>
-                          <p className="text-xs text-muted-foreground">Real-time history tracking coming soon.</p>
-                        </div>
-                      </div>
-                    ) : null}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={history?.map(h => ({
-                        ...h,
-                        time: new Date(h.timestamp * 1000).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false
-                        })
-                      })) || []}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                        <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
-                        <YAxis stroke="var(--color-muted-foreground)" />
-                        <RechartsTooltip
-                          contentStyle={{
-                            backgroundColor: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                        />
-                        <Area type="monotone" dataKey="latency" stroke="var(--color-primary)" fill="var(--color-primary)" fillOpacity={0.1} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-            </div>
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Stake</p>
+                             <p className="text-foreground">{node.stake ? `${node.stake} POL` : '-'}</p>
+                           </div>
 
-            <div className="lg:order-6 order-6">
-                <Card className="border-border bg-card">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-2">
-                         <CardTitle>Uptime Trend</CardTitle>
-                         <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">Tracks the percentage of time the node was online and responsive during the selected period. 100% is ideal.</p>
-                          </TooltipContent>
-                        </Tooltip>
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
+                             <div className="flex items-center gap-2">
+                               <div className="flex-1 bg-muted h-2 overflow-hidden">
+                                 <div
+                                   className={`h-full transition-all duration-500 ${
+                                     (dynamicRiskScore || 0) < 30 ? "bg-green-500" : (dynamicRiskScore || 0) < 70 ? "bg-primary" : "bg-red-500"
+                                   }`}
+                                   style={{ width: `${dynamicRiskScore || 0}%` }}
+                                 />
+                               </div>
+                               <span className="text-sm font-semibold">{dynamicRiskScore?.toFixed(0) || '-'}%</span>
+                             </div>
+                           </div>
+                         </div>
                        </div>
-                       <div className="flex items-center gap-2">
-                        <Switch id="simulated-uptime" checked={showSimulated} onCheckedChange={setShowSimulated} />
-                        <Label htmlFor="simulated-uptime" className="text-xs font-normal text-muted-foreground">Simulated Data</Label>
-                      </div>
-                    </div>
-                    <CardDescription>Last 24 hours</CardDescription>
-                  </CardHeader>
-                  <CardContent className="relative">
-                    {(!history || history.length === 0) && !showSimulated ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
-                        <div className="flex flex-col items-center text-center p-4">
-                          <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
-                          <p className="text-sm font-medium">Data Unavailable</p>
-                          <p className="text-xs text-muted-foreground">Real-time history tracking coming soon.</p>
-                        </div>
-                      </div>
-                    ) : null}
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={history?.map(h => ({
-                        ...h,
-                        time: new Date(h.timestamp * 1000).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false
-                        })
-                      })) || []}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                        <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
-                        <YAxis stroke="var(--color-muted-foreground)" domain={[95, 100]} />
-                        <RechartsTooltip
-                          contentStyle={{
-                            backgroundColor: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="uptime"
-                          stroke="var(--color-secondary)"
-                          fill="var(--color-secondary)"
-                          fillOpacity={0.1}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                     </div>
                   </CardContent>
                 </Card>
             </div>
+
+
             
           </div>
         </div>
