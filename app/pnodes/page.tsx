@@ -20,7 +20,7 @@ import { BuyXandButton } from "@/components/buy-xand-button"
 import { PNodeCard } from "@/components/pnode-card"
 import { cn } from "@/lib/utils"
 
-const ITEMS_PER_PAGE = 15
+const ITEMS_PER_PAGE = 50
 
 const fetcher = (url: string) => apiClient.getPNodes({
     page: 1,
