@@ -105,7 +105,7 @@ export function TutorialCarousel() {
                       </div>
                       <div className="text-center">
                         <h4 className="font-bold text-lg text-foreground">{step.title}</h4>
-                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                        <p className="text-sm text-muted-foreground whitespace-normal break-words">{step.description}</p>
                       </div>
                     </CardContent>
                   </Card>

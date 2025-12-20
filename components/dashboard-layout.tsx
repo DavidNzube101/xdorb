@@ -94,7 +94,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
     { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
     { label: "Network", href: "/network", icon: Network },
-    { label: "Docs", href: "/docs", icon: Info },
+    { label: "About", href: "/about", icon: Info },
     // Keeping Bookmarks as an extra feature, placed last or near relevant items
     { label: "Bookmarks", href: "/bookmarks", icon: Bookmark, badge: bookmarkCount },
   ]
@@ -258,12 +258,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Right: Footer Content */}
-        <div className="bg-background/60 backdrop-blur-md border border-border px-6 py-3 shadow-lg rounded-none pointer-events-auto flex items-center">
-          <FooterContent />
-        </div>
-      </div>
-
       <TutorialCarousel />
-    </div>
-  )
-}
+      
+      {/* Top Left: Logo Widget */}
+      <div className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-border px-4 py-3 shadow-lg rounded-none animate-in fade-in slide-in-from-top-4 duration-500">
+        <img 
+          src="/Logo.png" 
+          alt="XDOrb" 
+          className="h-8 w-8 rounded-full" 
+        />
+        <span className="font-bold text-lg tracking-tight">XDOrb</span>
+      </div>

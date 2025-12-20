@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Github, MessageCircle, Package, Code, Terminal, Globe, Bot } from "lucide-react"
+import { ExternalLink, Github, MessageCircle, Package, Code, Terminal, Globe, Bot, BookOpen } from "lucide-react"
 import Link from "next/link"
 
 export default function AboutPage() {
@@ -16,7 +16,7 @@ export default function AboutPage() {
           <p className="text-muted-foreground mt-1">Learn more about the Xandeum network and pNode analytics</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle>What is Xandeum?</CardTitle>
@@ -26,20 +26,6 @@ export default function AboutPage() {
               <p className="text-sm text-muted-foreground">
                 Xandeum is building a scalable storage layer for Solana dApps. We think of it as a second tier of Solana accounts that can grow to exabytes and beyond. This lives on its own network of storage provider nodes, which we call pNodes.
               </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Scalable</Badge>
-                  <span className="text-sm">Exabyte-scale storage</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Decentralized</Badge>
-                  <span className="text-sm">Network of pNodes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Solana Native</Badge>
-                  <span className="text-sm">Built for Solana ecosystem</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -48,25 +34,27 @@ export default function AboutPage() {
             <CardTitle>About XDOrb</CardTitle>
             <CardDescription>Xandeum analytics platform for pNode monitoring</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <p className="text-sm text-muted-foreground">
                 XDOrb is a comprehensive analytics platform providing real-time monitoring and insights for Xandeum pNodes. Built by <a href="https://x.com/DavidNzubee" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Skipp</a>.
               </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Real-time</Badge>
-                  <span className="text-sm">Live data updates</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">AI-Powered</Badge>
-                  <span className="text-sm">Predictive analytics</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">Interactive</Badge>
-                  <span className="text-sm">Customizable widgets</span>
-                </div>
-              </div>
             </CardContent>
+          </Card>
+          
+          <Card className="border-border bg-card hover:bg-muted/30 transition-colors">
+             <Link href="/docs" className="block h-full">
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-green-500/10 rounded-lg text-green-500">
+                            <BookOpen className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <CardTitle>Self-Host XDOrb</CardTitle>
+                            <CardDescription>View setup & deployment guide</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+             </Link>
           </Card>
         </div>
 

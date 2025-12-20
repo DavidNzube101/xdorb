@@ -71,7 +71,7 @@ export default function DocsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-muted-foreground">
-                        First, clone the backend repository. You'll need to configure your environment variables. 
+                        Clone the backend directory from <a href="https://github.com/DavidNzube101/xdorb-backend" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">github.com/DavidNzube101/xdorb-backend</a>. You'll need to configure your environment variables. 
                         Create a <code className="text-foreground bg-muted px-1 rounded">.env</code> file in the backend folder:
                     </p>
 
@@ -128,13 +128,13 @@ EOF`}</CodeBlock>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-muted-foreground">
-                        Navigate to the frontend directory. Create a <code className="text-foreground bg-muted px-1 rounded">.env</code> file:
+                        Navigate to the frontend directory. You can find the repository at <a href="https://github.com/DavidNzube101/xdorb" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">github.com/DavidNzube101/xdorb</a>. Create a <code className="text-foreground bg-muted px-1 rounded">.env</code> file:
                     </p>
 
                     <CodeBlock>{`cat << EOF > .env
 NODE_ENV=development
-GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>
-API_BASE=http://localhost:9000 # Backend URL
+GEMINI_API_KEY=<YOUR_GEMINI_API_KEY> # client side ai
+API_BASE=http://localhost:9000 # or whatever the port was
 API_KEY=<API_KEY_FROM_BACKEND>
 
 # Client-side variables
@@ -167,6 +167,18 @@ EOF`}</CodeBlock>
                     <CardTitle>Using XDOrb</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <p className="text-muted-foreground">
+                        For a detailed explanation of XDOrb's features and how to leverage them, read our official Medium article:
+                        <br />
+                        <a 
+                            href="https://medium.com/@davidnzube/xdorb-analytics-platform-for-xandeum-network-9d3bba499db0" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-primary hover:underline flex items-center gap-1 mt-2"
+                        >
+                            XDOrb Analytics Platform for Xandeum Network <ExternalLink className="w-4 h-4" />
+                        </a>
+                    </p>
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
                             <h3 className="font-bold mb-2 text-primary">Viewing pNodes</h3>
