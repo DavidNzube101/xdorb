@@ -258,14 +258,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Right: Footer Content */}
-      <TutorialCarousel />
-      
-      {/* Top Left: Logo Widget */}
-      <div className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-border px-4 py-3 shadow-lg rounded-none animate-in fade-in slide-in-from-top-4 duration-500">
-        <img 
-          src="/Logo.png" 
-          alt="XDOrb" 
-          className="h-8 w-8 rounded-full" 
-        />
-        <span className="font-bold text-lg tracking-tight">XDOrb</span>
+        <div className="bg-background/60 backdrop-blur-md border border-border px-6 py-3 shadow-lg rounded-none pointer-events-auto flex items-center">
+          <FooterContent />
+        </div>
       </div>
+
+      <TutorialCarousel />
+    </div>
+  )
+}
