@@ -13,7 +13,7 @@ export default function NetworkPage() {
   useEffect(() => {
     const fetchPnodes = async () => {
       try {
-        const response = await apiClient.getPNodes()
+        const response = await apiClient.getPNodes({ limit: 1000 })
         if (response.error) {
           console.error("Failed to fetch pNodes:", response.error)
         } else {

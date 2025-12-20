@@ -1,14 +1,21 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { apiClient } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Trophy, Award, Info } from "lucide-react"
+import { Trophy, Award, Info, RefreshCw } from "lucide-react"
 import { NodeAvatar } from "@/components/node-avatar"
+
+const BubbleMap = dynamic(() => import("@/components/bubble-map"), { 
+  ssr: false,
+  loading: () => <div className="h-[600px] w-full bg-muted rounded-lg animate-pulse flex items-center justify-center text-muted-foreground">Loading Map...</div>
+})
 
 const fetcher = async () => {
   const result = await apiClient.getLeaderboard("xdn", 20)
@@ -25,11 +32,26 @@ const fetcher = async () => {
 
 export default function LeaderboardPage() {
   const router = useRouter()
-  const { data: topNodes, isLoading } = useSWR("/leaderboard", fetcher, {
-    refreshInterval: 60000,
+  const [timeLeft, setTimeLeft] = useState(30)
+
+  const { data: topNodes, isLoading, mutate } = useSWR("/leaderboard", fetcher, {
+    refreshInterval: 30000,
     revalidateOnMount: true,
-    dedupingInterval: 5000
+    dedupingInterval: 5000,
+    onSuccess: () => setTimeLeft(30)
   })
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const handleRefresh = () => {
+      mutate()
+      setTimeLeft(30)
+  }
 
   const getMedalIcon = (position: number) => {
     switch (position) {
@@ -40,7 +62,7 @@ export default function LeaderboardPage() {
       case 3:
         return <Award className="w-5 h-5 text-orange-600" />
       default:
-        return <span className="w-5 h-5 flex items-center justify-center text-muted-foreground">{position}</span>
+        return <span className="w-5 h-5 flex items-center justify-center text-muted-foreground font-mono">{position}</span>
     }
   }
 
@@ -48,158 +70,101 @@ export default function LeaderboardPage() {
     <TooltipProvider>
       <DashboardLayout>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">XDOrb Leaderboard</h1>
-            <p className="text-muted-foreground mt-1">Top performing pNodes ranked by XDN Score</p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 className="text-3xl font-bold text-foreground">XDOrb Leaderboard</h1>
+                <p className="text-muted-foreground mt-1">Top 20 pNodes ranked by XDN Score</p>
+            </div>
+            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full text-xs text-muted-foreground">
+                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refreshing in {timeLeft}s</span>
+            </div>
           </div>
 
-          <Card className="border-border bg-card overflow-hidden">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle>Top 20 Nodes</CardTitle>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm">
-                    <div className="space-y-2">
-                      <p className="font-semibold">XDN Score Formula</p>
-                      <ul className="text-sm space-y-1">
-                        <li>• <strong>Stake (40%):</strong> Economic commitment</li>
-                        <li>• <strong>Uptime (30%):</strong> Reliability</li>
-                        <li>• <strong>Latency (20%):</strong> Performance (lower = better)</li>
-                        <li>• <strong>Risk Score (10%):</strong> Stability (lower = better)</li>
-                      </ul>
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          Example: Node with 10,000 stake, 99% uptime, 15ms latency, 5 risk score<br/>
-                          XDN Score = (10,000 × 0.4) + (99 × 0.3) + ((100-15) × 0.2) + ((100-5) × 0.1) = <strong>4,250</strong>
-                        </p>
-                      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Bubble Map Section */}
+            <Card className="border-border bg-card overflow-hidden h-fit">
+                <CardHeader>
+                    <CardTitle>Global Distribution</CardTitle>
+                    <CardDescription>Top nodes visualized by rank (Size = Rank)</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="h-[600px] w-full">
+                        {topNodes ? <BubbleMap nodes={topNodes} /> : <div className="h-full w-full bg-muted animate-pulse" />}
                     </div>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <CardDescription>Ranked by XDN Score (Xandeum Node Score)</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6">
-              {isLoading ? (
-                <div className="space-y-3 p-4 sm:p-0">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 bg-muted rounded animate-pulse" />
-                  ))}
+                </CardContent>
+            </Card>
+
+            {/* List Section */}
+            <Card className="border-border bg-card overflow-hidden h-fit">
+                <CardHeader>
+                <div className="flex items-center gap-2">
+                    <CardTitle>Rankings</CardTitle>
+                    <Tooltip>
+                    <TooltipTrigger>
+                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                        <div className="space-y-2">
+                        <p className="font-semibold">XDN Score Formula</p>
+                        <ul className="text-sm space-y-1">
+                            <li>• <strong>Stake (40%):</strong> Economic commitment</li>
+                            <li>• <strong>Uptime (30%):</strong> Reliability</li>
+                            <li>• <strong>Latency (20%):</strong> Performance (lower = better)</li>
+                            <li>• <strong>Risk Score (10%):</strong> Stability (lower = better)</li>
+                        </ul>
+                        </div>
+                    </TooltipContent>
+                    </Tooltip>
                 </div>
-              ) : (
-                <div className="space-y-2 p-2 sm:p-0">
-                  {topNodes?.map((node, index) => (
-                     <div
-                       key={node.id}
-                       className={`flex flex-col gap-3 sm:gap-4 p-4 rounded-lg border transition-all cursor-pointer overflow-hidden ${
-                         index < 3
-                           ? "bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30"
-                           : "bg-muted/30 border-border hover:border-primary/50"
-                       }`}
-                       onClick={() => router.push(`/pnodes/${node.id}`)}
-                     >
-                       <div className="flex items-center gap-3 sm:gap-4 w-full">
-                         <div className="flex items-center justify-center w-8 sm:w-10 min-w-8 flex-shrink-0">{getMedalIcon(index + 1)}</div>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <div className="flex-shrink-0">
-                               <NodeAvatar id={node.id} name={node.name} size="md" />
-                             </div>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <div className="space-y-1">
-                               <p className="font-semibold">{node.name}</p>
-                               <p className="text-sm">Status: {node.status}</p>
-                               <p className="text-sm">Uptime: {node.uptime}s</p>
-                               <p className="text-sm">Latency: {node.latency}ms</p>
-                               <p className="text-sm">Stake: {node.stake.toLocaleString()}</p>
-                               <p className="text-sm">Risk Score: {node.riskScore}</p>
-                               <p className="text-sm text-primary font-medium">XDN Score: {node.xdnScore.toFixed(1)}</p>
-                             </div>
-                           </TooltipContent>
-                         </Tooltip>
+                <CardDescription>Real-time performance metrics</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                {isLoading && !topNodes ? (
+                    <div className="space-y-3 p-6">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+                    ))}
+                    </div>
+                ) : (
+                    <div className="divide-y divide-border">
+                    {topNodes?.map((node, index) => (
+                        <div
+                        key={node.id}
+                        className={`flex items-center gap-3 p-4 transition-colors hover:bg-muted/50 cursor-pointer ${
+                            index < 3 ? "bg-primary/5" : ""
+                        }`}
+                        onClick={() => router.push(`/pnodes/${node.id}`)}
+                        >
+                        <div className="flex items-center justify-center w-8 flex-shrink-0">{getMedalIcon(index + 1)}</div>
+                        
+                        <div className="flex-shrink-0">
+                            <NodeAvatar id={node.id} name={node.name} size="sm" />
+                        </div>
 
-                         {/* Mobile: Compact layout */}
-                         <div className="flex-1 min-w-0 sm:hidden">
-                           <div className="flex items-center justify-between">
-                             <div className="min-w-0 flex-1">
-                               <p className="font-semibold text-foreground truncate">{node.name}</p>
-                               <p className="text-xs text-muted-foreground truncate">{node.location}</p>
-                             </div>
-                             <div className="flex items-center gap-2 ml-2">
-                               <div className="text-right">
-                                 <p className="font-bold text-primary text-sm">{node.xdnScore.toFixed(1)}</p>
-                                 <p className="text-xs text-muted-foreground">XDN</p>
-                               </div>
-                               <Badge
-                                 variant="outline"
-                                 className={`text-xs h-6 flex-shrink-0 ${
-                                   node.status === "active"
-                                     ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                     : node.status === "warning"
-                                       ? "bg-yellow-500/20 text-yellow-600"
-                                       : "bg-red-500/20 text-red-600"
-                                 }`}
-                               >
-                                 {node.status}
-                               </Badge>
-                             </div>
-                           </div>
-                           {/* Mobile badges in scrollable row */}
-                           <div className="flex gap-1 mt-2 overflow-x-auto pb-1">
-                             <Badge variant="outline" className="text-xs flex-shrink-0 h-5">
-                               {node.uptime}s
-                             </Badge>
-                             <Badge variant="outline" className="text-xs flex-shrink-0 h-5">
-                               {node.latency}ms
-                             </Badge>
-                           </div>
-                         </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <p className="font-semibold text-foreground truncate">{node.name}</p>
+                                {node.version && <Badge variant="outline" className="text-[10px] h-4 px-1 hidden sm:flex">v{node.version}</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span className="truncate">{node.location}</span>
+                                <span>•</span>
+                                <span>{node.latency}ms</span>
+                            </div>
+                        </div>
 
-                         {/* Desktop: Full layout */}
-                         <div className="flex-1 hidden sm:flex sm:items-center">
-                           <div className="flex-1">
-                             <p className="font-semibold text-foreground">{node.name}</p>
-                             <p className="text-sm text-muted-foreground">{node.location}</p>
-                             <div className="flex gap-2 mt-1">
-                               <Badge variant="outline" className="text-xs">
-                                 {node.uptime}s uptime
-                               </Badge>
-                               <Badge variant="outline" className="text-xs">
-                                 {node.latency}ms latency
-                               </Badge>
-                             </div>
-                           </div>
-
-                           <div className="flex items-center gap-4 ml-4">
-                             <div className="text-right">
-                               <p className="font-bold text-primary text-lg">{node.xdnScore.toFixed(1)}</p>
-                               <p className="text-xs text-muted-foreground">XDN Score</p>
-                             </div>
-                             <Badge
-                               variant="outline"
-                               className={`${
-                                 node.status === "active"
-                                   ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                   : node.status === "warning"
-                                     ? "bg-yellow-500/20 text-yellow-600"
-                                     : "bg-red-500/20 text-red-600"
-                               }`}
-                             >
-                               {node.status}
-                             </Badge>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        <div className="text-right">
+                            <p className="font-bold text-primary">{node.xdnScore.toFixed(0)}</p>
+                            <p className="text-[10px] text-muted-foreground">XDN</p>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+          </div>
         </div>
       </DashboardLayout>
     </TooltipProvider>

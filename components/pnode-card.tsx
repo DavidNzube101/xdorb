@@ -37,6 +37,25 @@ const convertBytes = (bytes: number, unit: 'TB' | 'GB' | 'MB') => {
     return (bytes / units[unit]).toFixed(2);
 };
 
+const formatUptime = (seconds: number) => {
+  if (!seconds) return "0s"
+  
+  if (seconds < 60) {
+    return `${seconds.toFixed(0)}s`
+  }
+
+  const d = Math.floor(seconds / (3600 * 24))
+  const h = Math.floor((seconds % (3600 * 24)) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  
+  const parts = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m}m`)
+  
+  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
+}
+
 export function PNodeCard({ node }: PNodeCardProps) {
   const [storageUnit, setStorageUnit] = useState<'TB' | 'GB' | 'MB'>('TB');
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null);
@@ -72,7 +91,7 @@ export function PNodeCard({ node }: PNodeCardProps) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Uptime</p>
-            <p className="font-semibold">{node.uptime.toFixed(0)}%</p>
+            <p className="font-semibold">{formatUptime(node.uptime)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Latency</p>
