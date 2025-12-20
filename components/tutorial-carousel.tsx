@@ -93,10 +93,10 @@ export function TutorialCarousel() {
           </DialogHeader>
         </div>
         
-        <Carousel className="w-full">
-          <CarouselContent>
+        <Carousel className="w-full overflow-hidden">
+          <CarouselContent className="flex">
             {tutorialSteps.map((step, index) => (
-              <CarouselItem key={index}>
+              <CarouselItem key={index} className="min-w-full">
                 <div className="p-1">
                   <Card className="border-none shadow-none bg-transparent">
                     <CardContent className="flex flex-col gap-4 p-6 pt-0">
