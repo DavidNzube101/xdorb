@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon } from "lucide-react"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -221,6 +221,23 @@ export default function PNodeDetailPage() {
   const id = params.id as string
   const [showSimulated, setShowSimulated] = useState(false)
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null)
+  const [rank, setRank] = useState<number | null>(null)
+
+  useEffect(() => {
+    const fetchRank = async () => {
+      // Fetch all nodes to determine rank (efficiently cached by backend/Redis)
+      const result = await apiClient.getPNodes({ limit: 1000 })
+      if (!result.error && Array.isArray(result.data)) {
+        // Sort by XDN Score descending
+        const sorted = result.data.sort((a, b) => b.xdnScore - a.xdnScore)
+        const index = sorted.findIndex(n => n.id === id)
+        if (index !== -1) {
+          setRank(index + 1)
+        }
+      }
+    }
+    fetchRank()
+  }, [id])
 
   const { data: node, isLoading, error } = useSWR(
     id ? `/pnodes/${id}` : null,
@@ -528,7 +545,15 @@ export default function PNodeDetailPage() {
                           </div>
                       </div>
 
-                      <DialogFooter className="p-6 border-t flex-shrink-0">
+                      <DialogFooter className="p-6 border-t flex-shrink-0 flex flex-col sm:flex-row gap-3 sm:justify-between">
+                          <div className="flex gap-2 w-full sm:w-auto">
+                              <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out pNode ${node.id} on XDOrb`)}&url=${encodeURIComponent(`https://xdorb.vercel.app/pnodes/${node.id}`)}`, '_blank')}>
+                                  <Twitter className="w-4 h-4 mr-2" /> Share to X
+                              </Button>
+                              <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(`https://xdorb.vercel.app/pnodes/${node.id}`)}&text=${encodeURIComponent(`Check out pNode ${node.id} on XDOrb`)}`, '_blank')}>
+                                  <Send className="w-4 h-4 mr-2" /> Telegram
+                              </Button>
+                          </div>
                           <Button onClick={handleDownloadPng} disabled={isExporting} className="w-full sm:w-auto">
                               <Download className="w-4 h-4 mr-2" />
                               {isExporting ? 'Exporting...' : 'Download PNG'}
@@ -796,18 +821,33 @@ export default function PNodeDetailPage() {
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                          <div className="space-y-4">
                            <div>
-                             <p className="text-sm text-muted-foreground mb-1">Node ID</p>
+                             <p className="text-sm text-muted-foreground mb-1">Public Key/Node ID</p>
                              <div className="flex items-center gap-2">
-                               <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all">
+                               <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all truncate">
                                  {node.id}
                                </code>
                                <button
                                  onClick={() => copyToClipboard(node.id)}
                                  className="p-2 hover:bg-muted rounded transition-colors"
+                                 title="Copy ID"
                                >
                                  <Copy className="w-4 h-4" />
                                </button>
+                               <a 
+                                 href={`https://orbmarkets.io/address/${node.id}`} 
+                                 target="_blank" 
+                                 rel="noopener noreferrer"
+                                 className="p-2 hover:bg-muted rounded transition-colors text-primary"
+                                 title="View on OrbMarkets Explorer"
+                               >
+                                 <ExternalLink className="w-4 h-4" />
+                               </a>
                              </div>
+                           </div>
+
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Rank</p>
+                             <p className="text-foreground font-bold text-lg">{rank ? `#${rank}` : '-'}</p>
                            </div>
 
                            <div>
