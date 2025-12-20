@@ -260,8 +260,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <FooterContent />
         </div>
       </div>
-
-      <TutorialCarousel />
     </div>
   )
 }
