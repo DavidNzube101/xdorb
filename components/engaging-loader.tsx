@@ -5,13 +5,13 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const loadingMessages = [
-  "ProTip: Use the Telegram bot to get real-time pNode alerts!",
-  "ProTip: The Analytics page uses Firestore snapshots for instant data loading.",
-  "ProTip: Check the Leaderboard for top-performing pNodes and rising stars!",
-  "ProTip: Explore the Network page in 3D for a global view of node distribution.",
-  "ProTip: Easily share pNode data on X or Telegram from any detail page.",
-  "ProTip: You can self-host XDOrb! Check the Docs for setup instructions.",
-  "ProTip: AI insights help you compare nodes and understand network health.",
+  "ProTip: Select two nodes and click 'Compare' to get an AI-powered performance analysis.",
+  "ProTip: Access the full-screen Trading Terminal to view charts and swap tokens instantly.",
+  "ProTip: Embed live network stats on your own website using our custom Widgets.",
+  "ProTip: Check the Analytics page for real-time charts on CPU, RAM, and Storage usage.",
+  "ProTip: Use the Telegram Bot to get instant alerts when your favorite node goes offline.",
+  "ProTip: Visit the Leaderboard to see the top-performing nodes ranked by XDN Score.",
+  "ProTip: Bookmark nodes to create a personalized watchlist for quick access.",
 ]
 
 export function EngagingLoader() {
