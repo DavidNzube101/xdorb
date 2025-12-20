@@ -25,7 +25,7 @@ const CodeBlock = ({ children }: { children: string }) => {
             {copied ? <span className="text-xs text-green-400">Copied!</span> : <Copy className="w-4 h-4" />}
         </button>
       </div>
-      <pre className="bg-black/90 p-4 rounded-lg overflow-x-auto text-sm font-mono text-green-400 border border-white/10">
+      <pre className="bg-black/90 p-4 rounded-lg overflow-x-auto text-sm font-mono text-green-400 border border-white/10 whitespace-pre-wrap break-words">
         <code>{children}</code>
       </pre>
     </div>
