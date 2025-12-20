@@ -103,9 +103,9 @@ export function TutorialCarousel() {
                       <div className="relative w-full h-56 rounded-lg overflow-hidden">
                         <Image src={step.image} alt={step.title} layout="fill" objectFit="cover" />
                       </div>
-                      <div className="text-center">
+                      <div className="text-center px-4">
                         <h4 className="font-bold text-lg text-foreground">{step.title}</h4>
-                        <p className="text-sm text-muted-foreground whitespace-normal break-words">{step.description}</p>
+                        <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto whitespace-normal break-words">{step.description}</p>
                       </div>
                     </CardContent>
                   </Card>

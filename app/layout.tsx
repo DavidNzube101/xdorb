@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans as V0_Font_Plus_Jakarta_Sans, IBM_Plex_Mono as V0_Font_IBM_Plex_Mono, Lora as V0_Font_Lora } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { WalletContextProvider } from '@/context/wallet-provider'
+import { TutorialCarousel } from '@/components/tutorial-carousel'
+import { Toaster } from "@/components/ui/sonner"
 import './globals.css'
 
 // Initialize fonts
@@ -65,6 +67,8 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
+            <Toaster />
+            <TutorialCarousel />
           </ThemeProvider>
         </WalletContextProvider>
       </body>

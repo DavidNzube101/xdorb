@@ -32,7 +32,6 @@ import {
 
 import { PriceMarquee } from "@/components/price-marquee"
 import { BuyXandButton } from "@/components/buy-xand-button"
-import { TutorialCarousel } from "./tutorial-carousel"
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -104,7 +103,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background relative selection:bg-primary/20">
-      <TutorialCarousel />
       
       {/* Top Left: Logo Widget */}
       <div className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-border px-4 py-3 shadow-lg rounded-none animate-in fade-in slide-in-from-top-4 duration-500">
