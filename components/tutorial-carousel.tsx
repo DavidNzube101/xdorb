@@ -12,47 +12,47 @@ const tutorialSteps = [
   {
     title: "Welcome to XDOrb",
     description: "Your mission control for the Xandeum pNode network. This quick tour will show you the key features.",
-    image: "https://images.unsplash.com/photo-1614741118884-62ac62b22863?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Welcome-to-XDOrb.png"
   },
   {
     title: "The Overview Page",
     description: "Start here for a high-level summary of network health, active nodes, and quick actions.",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/The-Overview-Page.png"
   },
   {
     title: "The pNodes List",
     description: "Find, sort, and filter every node on the network. Switch between a detailed list and a quick grid view.",
-    image: "https://images.unsplash.com/photo-1554483185-38e6d5107383?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/The-pNodes-List.png"
   },
   {
     title: "Deep Analytics",
     description: "Dive into real-time charts for Storage, CPU, RAM, and Network Traffic on the Analytics page.",
-    image: "https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Deep-Analytics.png"
   },
   {
     title: "The Leaderboard",
     description: "See who's at the top with our Bento Grid summary, featuring season leaders and rising stars.",
-    image: "https://images.unsplash.com/photo-1599423300042-481b1f8c14d9?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/The-Leaderboard.png"
   },
   {
     title: "Network Page",
     description: "Visualize the global distribution of nodes with our interactive 3D Globe and 2D Heatmap.",
-    image: "https://images.unsplash.com/photo-1593368942249-930c7225a07c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Network-Page.png"
   },
   {
     title: "Telegram Bot",
     description: "Get real-time alerts and run commands from anywhere using our powerful Telegram Bot.",
-    image: "https://images.unsplash.com/photo-1611606063065-ee7946f0787a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Telegram-Bot.png"
   },
   {
     title: "Bookmarks",
     description: "Save your favorite nodes for quick access. Your bookmarked list is available across all your devices.",
-    image: "https://images.unsplash.com/photo-1588072432836-e10032774350?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Bookmarks.png"
   },
   {
     title: "Trading Terminal",
     description: "Swap tokens directly on XDOrb using our integrated Jupiter-powered trading terminal.",
-    image: "https://images.unsplash.com/photo-1642052551947-6804a8043aa9?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    image: "/tutorial_images/Trading-Terminal.png"
   }
 ];
 

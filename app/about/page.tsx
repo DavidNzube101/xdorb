@@ -94,7 +94,7 @@ export default function AboutPage() {
               </a>
 
               <a
-                href="https://github.com/DavidNzube101/xborb"
+                href="https://github.com/DavidNzube101/xdorb"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors"
