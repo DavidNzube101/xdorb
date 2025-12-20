@@ -11,11 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Trophy, Award, Info, RefreshCw } from "lucide-react"
 import { NodeAvatar } from "@/components/node-avatar"
-
-const BubbleMap = dynamic(() => import("@/components/bubble-map"), { 
-  ssr: false,
-  loading: () => <div className="h-[600px] w-full bg-muted rounded-lg animate-pulse flex items-center justify-center text-muted-foreground">Loading Map...</div>
-})
+import LeaderboardBento from "@/components/leaderboard-bento"
 
 const fetcher = async () => {
   const result = await apiClient.getLeaderboard("xdn", 20)
@@ -69,11 +65,11 @@ export default function LeaderboardPage() {
   return (
     <TooltipProvider>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h1 className="text-3xl font-bold text-foreground">XDOrb Leaderboard</h1>
-                <p className="text-muted-foreground mt-1">Top 20 pNodes ranked by XDN Score</p>
+                <p className="text-muted-foreground mt-1">Top performing pNodes ranked by XDN Score</p>
             </div>
             <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-none border border-border text-xs text-muted-foreground">
                 <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -81,25 +77,22 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Bubble Map Section */}
-            <Card className="border-border bg-card overflow-hidden h-fit">
-                <CardHeader>
-                    <CardTitle>Global Distribution</CardTitle>
-                    <CardDescription>Top nodes visualized by rank (Size = Rank)</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="h-[600px] w-full">
-                        {topNodes ? <BubbleMap nodes={topNodes} /> : <div className="h-full w-full bg-muted animate-pulse" />}
-                    </div>
-                </CardContent>
-            </Card>
+          {/* Bento Grid Summary */}
+          {topNodes ? (
+             <LeaderboardBento nodes={topNodes} />
+          ) : (
+             <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 h-[500px]">
+                <div className="md:col-span-2 md:row-span-2 bg-muted rounded-xl animate-pulse" />
+                <div className="bg-muted rounded-xl animate-pulse" />
+                <div className="bg-muted rounded-xl animate-pulse" />
+             </div>
+          )}
 
-            {/* List Section */}
-            <Card className="border-border bg-card overflow-hidden h-fit">
+          {/* List Section */}
+          <Card className="border-border bg-card overflow-hidden">
                 <CardHeader>
                 <div className="flex items-center gap-2">
-                    <CardTitle>Rankings</CardTitle>
+                    <CardTitle>Global Rankings</CardTitle>
                     <Tooltip>
                     <TooltipTrigger>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground" />
@@ -117,7 +110,7 @@ export default function LeaderboardPage() {
                     </TooltipContent>
                     </Tooltip>
                 </div>
-                <CardDescription>Real-time performance metrics</CardDescription>
+                <CardDescription>Real-time performance metrics for top 20 nodes</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                 {isLoading && !topNodes ? (
@@ -164,7 +157,6 @@ export default function LeaderboardPage() {
                 )}
                 </CardContent>
             </Card>
-          </div>
         </div>
       </DashboardLayout>
     </TooltipProvider>
