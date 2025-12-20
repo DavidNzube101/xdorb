@@ -3,7 +3,7 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Terminal, Copy } from "lucide-react"
+import { Terminal, Copy, ExternalLink } from "lucide-react"
 import { useState } from "react"
 
 const CodeBlock = ({ children }: { children: string }) => {

@@ -160,7 +160,7 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
 
 export default function MapComponent({ center, zoom, highlight }: MapComponentProps) {
   const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([])
-  const [viewMode, setViewMode] = useState<"2d" | "3d">("3d")
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("2d")
 
   useEffect(() => {
     const fetchHeatmapData = async () => {
