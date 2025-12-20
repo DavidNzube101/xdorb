@@ -6,6 +6,25 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { NetworkHeatmap } from "@/components/network-heatmap"
 import { apiClient, PNodeMetrics } from "@/lib/api"
 
+const formatUptime = (seconds: number) => {
+  if (!seconds) return "0s"
+  
+  if (seconds < 60) {
+    return `${seconds.toFixed(0)}s`
+  }
+
+  const d = Math.floor(seconds / (3600 * 24))
+  const h = Math.floor((seconds % (3600 * 24)) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  
+  const parts = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m}m`)
+  
+  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
+}
+
 export default function NetworkPage() {
   const [pnodes, setPnodes] = useState<PNodeMetrics[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,7 +107,7 @@ export default function NetworkPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Avg Uptime</p>
-                  <p className="text-2xl font-bold text-primary">{avgUptime.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-primary">{formatUptime(avgUptime)}</p>
                 </div>
               </div>
             </CardContent>
@@ -110,38 +129,6 @@ export default function NetworkPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* pNode List */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>pNode List</CardTitle>
-            <CardDescription>Real-time pNode information from Xandeum network</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {pnodes.slice(0, 10).map((pnode) => (
-                <div key={pnode.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-3 h-3 rounded-full ${
-                      pnode.status === "active" ? "bg-green-500" :
-                      pnode.status === "warning" ? "bg-yellow-500" : "bg-red-500"
-                    }`} />
-                    <div>
-                      <p className="font-medium">{pnode.name}</p>
-                      <p className="text-sm text-muted-foreground">{pnode.location}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{pnode.uptime.toFixed(1)}% uptime</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(pnode.storageUsed / (1024 * 1024 * 1024)).toFixed(1)} GB used
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   )

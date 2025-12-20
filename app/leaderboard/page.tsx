@@ -75,7 +75,7 @@ export default function LeaderboardPage() {
                 <h1 className="text-3xl font-bold text-foreground">XDOrb Leaderboard</h1>
                 <p className="text-muted-foreground mt-1">Top 20 pNodes ranked by XDN Score</p>
             </div>
-            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-none border border-border text-xs text-muted-foreground">
                 <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
                 <span>Refreshing in {timeLeft}s</span>
             </div>
