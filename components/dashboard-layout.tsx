@@ -263,6 +263,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
+      <TutorialCarousel />
     </div>
   )
 }
