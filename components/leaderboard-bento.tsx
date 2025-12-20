@@ -1,19 +1,46 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { PNodeMetrics } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, TrendingUp, Clock, Zap, Crown } from "lucide-react"
+import { Trophy, TrendingUp, Clock, Crown } from "lucide-react"
 import { NodeAvatar } from "@/components/node-avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface LeaderboardBentoProps {
   nodes: PNodeMetrics[]
 }
 
 export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
+  const router = useRouter()
   const top3 = nodes.slice(0, 3)
   const mover = nodes[3] // Mock "Mover" as the 4th node for now
-  const totalStake = nodes.reduce((acc, node) => acc + node.stake, 0)
+
+  const NodePreviewTooltip = ({ node, children }: { node: PNodeMetrics, children: React.ReactNode }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent className="p-0 border-none bg-transparent shadow-none">
+        <Card className="p-3 min-w-[200px] shadow-xl border-primary/20 bg-card/95 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm">{node.name}</h3>
+                <Badge variant="outline" className="text-[10px]">{node.xdnScore.toFixed(0)} XDN</Badge>
+            </div>
+            <div className="space-y-1 text-xs">
+                <p className="text-muted-foreground"><strong>Location:</strong> {node.location}</p>
+                <p className="text-muted-foreground"><strong>Latency:</strong> {node.latency}ms</p>
+                <p className="text-muted-foreground"><strong>Uptime:</strong> {node.uptime}s</p>
+            </div>
+        </Card>
+      </TooltipContent>
+    </Tooltip>
+  )
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 h-full min-h-[500px]">
@@ -31,56 +58,74 @@ export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
         <div className="flex-1 flex items-end justify-center gap-4 sm:gap-8 pb-4">
           {/* Silver - Rank 2 */}
           {top3[1] && (
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative">
-                <NodeAvatar id={top3[1].id} name={top3[1].name} size="lg" />
-                <Badge className="absolute -bottom-2 -right-2 bg-slate-400 text-slate-900 border-none">#2</Badge>
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-sm max-w-[100px] truncate">{top3[1].name}</p>
-                <p className="text-xs text-muted-foreground">{top3[1].xdnScore.toFixed(0)} XDN</p>
-              </div>
-              <div className="w-16 sm:w-20 h-24 bg-slate-400/20 rounded-t-lg border-t border-x border-slate-400/30" />
-            </div>
+            <NodePreviewTooltip node={top3[1]}>
+                <div 
+                    className="flex flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => router.push(`/pnodes/${top3[1].id}`)}
+                >
+                <div className="relative">
+                    <NodeAvatar id={top3[1].id} name={top3[1].name} size="lg" />
+                    <Badge className="absolute -bottom-2 -right-2 bg-slate-400 text-slate-900 border-none">#2</Badge>
+                </div>
+                <div className="text-center">
+                    <p className="font-bold text-sm max-w-[100px] truncate">{top3[1].name}</p>
+                    <p className="text-xs text-muted-foreground">{top3[1].xdnScore.toFixed(0)} XDN</p>
+                </div>
+                <div className="w-16 sm:w-20 h-24 bg-slate-400/20 rounded-t-lg border-t border-x border-slate-400/30" />
+                </div>
+            </NodePreviewTooltip>
           )}
 
           {/* Gold - Rank 1 */}
           {top3[0] && (
-            <div className="flex flex-col items-center gap-2 z-10">
-              <div className="relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                    <Crown className="w-6 h-6 text-yellow-500 fill-yellow-500 animate-bounce" />
+            <NodePreviewTooltip node={top3[0]}>
+                <div 
+                    className="flex flex-col items-center gap-2 z-10 cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => router.push(`/pnodes/${top3[0].id}`)}
+                >
+                <div className="relative">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                        <Crown className="w-6 h-6 text-yellow-500 fill-yellow-500 animate-bounce" />
+                    </div>
+                    <NodeAvatar id={top3[0].id} name={top3[0].name} size="xl" />
+                    <Badge className="absolute -bottom-3 -right-3 bg-yellow-500 text-yellow-950 border-none px-2 py-0.5 text-sm">#1</Badge>
                 </div>
-                <NodeAvatar id={top3[0].id} name={top3[0].name} size="xl" />
-                <Badge className="absolute -bottom-3 -right-3 bg-yellow-500 text-yellow-950 border-none px-2 py-0.5 text-sm">#1</Badge>
-              </div>
-              <div className="text-center mt-2">
-                <p className="font-bold text-base max-w-[120px] truncate">{top3[0].name}</p>
-                <p className="text-xs text-yellow-500 font-mono">{top3[0].xdnScore.toFixed(0)} XDN</p>
-              </div>
-              <div className="w-20 sm:w-24 h-32 bg-yellow-500/20 rounded-t-lg border-t border-x border-yellow-500/30 shadow-[0_0_30px_-5px_rgba(234,179,8,0.3)]" />
-            </div>
+                <div className="text-center mt-2">
+                    <p className="font-bold text-base max-w-[120px] truncate">{top3[0].name}</p>
+                    <p className="text-xs text-yellow-500 font-mono">{top3[0].xdnScore.toFixed(0)} XDN</p>
+                </div>
+                <div className="w-20 sm:w-24 h-32 bg-yellow-500/20 rounded-t-lg border-t border-x border-yellow-500/30 shadow-[0_0_30px_-5px_rgba(234,179,8,0.3)]" />
+                </div>
+            </NodePreviewTooltip>
           )}
 
           {/* Bronze - Rank 3 */}
           {top3[2] && (
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative">
-                <NodeAvatar id={top3[2].id} name={top3[2].name} size="lg" />
-                <Badge className="absolute -bottom-2 -right-2 bg-amber-700 text-amber-100 border-none">#3</Badge>
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-sm max-w-[100px] truncate">{top3[2].name}</p>
-                <p className="text-xs text-muted-foreground">{top3[2].xdnScore.toFixed(0)} XDN</p>
-              </div>
-              <div className="w-16 sm:w-20 h-16 bg-amber-700/20 rounded-t-lg border-t border-x border-amber-700/30" />
-            </div>
+            <NodePreviewTooltip node={top3[2]}>
+                <div 
+                    className="flex flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => router.push(`/pnodes/${top3[2].id}`)}
+                >
+                <div className="relative">
+                    <NodeAvatar id={top3[2].id} name={top3[2].name} size="lg" />
+                    <Badge className="absolute -bottom-2 -right-2 bg-amber-700 text-amber-100 border-none">#3</Badge>
+                </div>
+                <div className="text-center">
+                    <p className="font-bold text-sm max-w-[100px] truncate">{top3[2].name}</p>
+                    <p className="text-xs text-muted-foreground">{top3[2].xdnScore.toFixed(0)} XDN</p>
+                </div>
+                <div className="w-16 sm:w-20 h-16 bg-amber-700/20 rounded-t-lg border-t border-x border-amber-700/30" />
+                </div>
+            </NodePreviewTooltip>
           )}
         </div>
       </Card>
 
       {/* Small Tile: Fastest Mover */}
-      <Card className="bg-card border-border p-4 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
+      <Card 
+        className="bg-card border-border p-4 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer"
+        onClick={() => mover && router.push(`/pnodes/${mover.id}`)}
+      >
         <div className="absolute right-0 top-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
             <TrendingUp className="w-16 h-16" />
         </div>
@@ -89,15 +134,17 @@ export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
           <h4 className="font-semibold text-sm">Rising Star</h4>
         </div>
         {mover ? (
-            <div className="flex items-center gap-3">
-                <NodeAvatar id={mover.id} name={mover.name} size="sm" />
-                <div>
-                    <p className="font-bold truncate max-w-[120px]">{mover.name}</p>
-                    <p className="text-xs text-green-500 flex items-center gap-1">
-                        +12 Positions <span className="text-[10px] text-muted-foreground">(7d)</span>
-                    </p>
+            <NodePreviewTooltip node={mover}>
+                <div className="flex items-center gap-3">
+                    <NodeAvatar id={mover.id} name={mover.name} size="sm" />
+                    <div>
+                        <p className="font-bold truncate max-w-[120px]">{mover.name}</p>
+                        <p className="text-xs text-green-500 flex items-center gap-1">
+                            +12 Positions <span className="text-[10px] text-muted-foreground">(7d)</span>
+                        </p>
+                    </div>
                 </div>
-            </div>
+            </NodePreviewTooltip>
         ) : (
             <div className="text-muted-foreground text-sm">No data</div>
         )}
