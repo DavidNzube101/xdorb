@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Set the root directory for file tracing to silence the warning
-  outputFileTracingRoot: '/home/skipp/Documents/projects/XB',
-  
   compiler: {
     emotion: false,
   },
