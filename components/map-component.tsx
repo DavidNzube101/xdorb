@@ -50,9 +50,11 @@ function MapController({ center, zoom }: { center?: [number, number], zoom?: num
 
 function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat: number, lng: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const pointerInteracting = useRef<number | null>(null)
-  const pointerInteractionMovement = useRef(0)
+  const pointerInteracting = useRef<{ x: number, y: number } | null>(null)
+  const pointerInteractionMovement = useRef({ x: 0, y: 0 })
   const phi = useRef(0)
+  const theta = useRef(0.3)
+  const zoom = useRef(1) // 1 is default, smaller is zoomed out
 
   useEffect(() => {
     let width = 0
@@ -63,13 +65,12 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
 
     if (!canvasRef.current) return
 
-    // Convert data to markers with smaller, crisp sizes
+    // Use colored markers as on 2D map
     const markers = data.map(d => ({
         location: [d.lat, d.lng] as [number, number],
-        size: 0.03 + (d.intensity / 500) // Much smaller base size (0.03) for "single point" look
+        size: 0.03 + (d.intensity / 500)
     }))
 
-    // Add highlight marker
     if (highlight) {
         markers.push({
             location: [highlight.lat, highlight.lng],
@@ -82,25 +83,26 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
       width: width * 2,
       height: width * 2,
       phi: 0,
-      theta: 0.3, // Slight tilt
+      theta: 0.3,
       dark: 1,
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 6,
-      baseColor: [0.1, 0.1, 0.15], // Dark blueish
-      markerColor: [1, 0.8, 0.4], // Gold/Yellow (Crisp)
-      glowColor: [0.1, 0.1, 0.2], // Very subtle glow, mostly dark
+      baseColor: [0.1, 0.1, 0.15],
+      markerColor: [1, 0.8, 0.4], // Gold
+      glowColor: [0.1, 0.1, 0.2],
       opacity: 0.8,
       markers: markers,
       onRender: (state) => {
-        // Interactivity handling
+        // Handle autorotation and interaction
         if (!pointerInteracting.current) {
-            phi.current += 0.003 // Auto-rotate
+            phi.current += 0.003
         }
         
-        state.phi = phi.current + pointerInteractionMovement.current
-        state.width = width * 2
-        state.height = width * 2
+        state.phi = phi.current + pointerInteractionMovement.current.x
+        state.theta = theta.current + pointerInteractionMovement.current.y
+        state.width = width * 2 * zoom.current
+        state.height = width * 2 * zoom.current
       },
     })
 
@@ -113,7 +115,10 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
   return (
     <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden cursor-grab active:cursor-grabbing"
          onPointerDown={(e) => {
-            pointerInteracting.current = e.clientX - pointerInteractionMovement.current;
+            pointerInteracting.current = { 
+                x: e.clientX - pointerInteractionMovement.current.x,
+                y: e.clientY - pointerInteractionMovement.current.y,
+            }
             if(canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
          }}
          onPointerUp={() => {
@@ -126,22 +131,26 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
          }}
          onMouseMove={(e) => {
             if (pointerInteracting.current !== null) {
-                const delta = e.clientX - pointerInteracting.current;
-                pointerInteractionMovement.current = delta * 0.005;
+                const delta = { 
+                    x: e.clientX - pointerInteracting.current.x, 
+                    y: e.clientY - pointerInteracting.current.y 
+                }
+                pointerInteractionMovement.current = {
+                    x: delta.x * 0.005,
+                    y: delta.y * 0.005,
+                }
             }
          }}
-         onTouchMove={(e) => {
-            if (pointerInteracting.current !== null && e.touches[0]) {
-                const delta = e.touches[0].clientX - pointerInteracting.current;
-                pointerInteractionMovement.current = delta * 0.005;
-            }
+         onWheel={(e) => {
+            // Adjust zoom based on wheel delta
+            const newZoom = zoom.current - e.deltaY * 0.001
+            zoom.current = Math.max(0.5, Math.min(2.5, newZoom)) // Clamp zoom
          }}
     >
         <canvas
             ref={canvasRef}
-            style={{ width: '100%', height: '100%', maxWidth: '600px', maxHeight: '600px', aspectRatio: '1' }}
+            style={{ width: '100%', height: '100%', maxWidth: '600px', maxHeight: '600px', aspectRatio: '1', transition: 'opacity 1s ease-in' }}
         />
-        {/* Simple Legend for Globe */}
         <div className="absolute bottom-4 left-4 text-xs text-muted-foreground pointer-events-none">
             {data.length} active regions
         </div>

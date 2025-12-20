@@ -31,13 +31,6 @@ const embedWidgets: EmbedWidget[] = [
     embedCode: `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed/top-nodes" width="400" height="300" frameborder="0" style="border-radius: 8px;"></iframe>`,
     preview: 'Displays top 5 nodes by uptime with basic metrics'
   },
-  {
-    id: 'reward-chart',
-    name: 'Reward Distribution',
-    description: 'Visual chart of reward distribution by tier',
-    embedCode: `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed/reward-chart" width="400" height="250" frameborder="0" style="border-radius: 8px;"></iframe>`,
-    preview: 'Bar chart showing rewards across different performance tiers'
-  }
 ]
 
 export function EmbeddableWidgets() {

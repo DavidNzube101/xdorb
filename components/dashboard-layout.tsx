@@ -170,69 +170,63 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Mobile Navigation (Bottom) */}
-      <nav className="fixed bottom-6 left-6 right-6 z-40 md:hidden flex items-center justify-between bg-background/60 backdrop-blur-md border border-border p-2 shadow-lg rounded-none animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <TooltipProvider>
-          {mobileMainItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Tooltip key={item.href} delayDuration={0}>
-                 <TooltipTrigger asChild>
-                    <Link
-                      href={item.href}
-                      className={`
-                        flex items-center justify-center flex-1 py-3 rounded-none transition-colors
-                        ${isActive 
-                          ? "text-primary bg-primary/10" 
-                          : "text-muted-foreground hover:text-foreground"
-                        }
-                      `}
-                    >
-                      <Icon className="w-6 h-6" />
-                    </Link>
-                 </TooltipTrigger>
-                 <TooltipContent side="top" className="rounded-none">
-                    {item.label}
-                 </TooltipContent>
-              </Tooltip>
-            )
-          })}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden flex items-center justify-around bg-background/80 backdrop-blur-lg border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        {mobileMainItems.map((item) => {
+          const Icon = item.icon
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`
+                flex flex-col items-center justify-center flex-1 py-2 transition-colors
+                ${isActive 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] mt-1">{item.label}</span>
+            </Link>
+          )
+        })}
 
-          {/* More Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={`
-                  flex items-center justify-center flex-1 py-3 rounded-none transition-colors outline-none
-                  ${mobileMoreItems.some(item => pathname === item.href)
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground"
-                  }
-                `}
-              >
-                <MoreHorizontal className="w-6 h-6" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 mb-4 rounded-none border-border bg-background/95 backdrop-blur-md">
-              {mobileMoreItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <DropdownMenuItem key={item.href} asChild className="rounded-none cursor-pointer">
-                    <Link href={item.href} className="flex items-center gap-2 w-full p-2">
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                      {item.badge !== undefined && item.badge > 0 && (
-                        <Badge variant="secondary" className="ml-auto text-xs rounded-none h-5 px-1">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TooltipProvider>
+        {/* More Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={`
+                flex flex-col items-center justify-center flex-1 py-2 transition-colors outline-none
+                ${mobileMoreItems.some(item => pathname === item.href)
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              <MoreHorizontal className="w-5 h-5" />
+              <span className="text-[10px] mt-1">More</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 mb-4 rounded-none border-border bg-background/95 backdrop-blur-md">
+            {mobileMoreItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <DropdownMenuItem key={item.href} asChild className="rounded-none cursor-pointer">
+                  <Link href={item.href} className="flex items-center gap-2 w-full p-2">
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-xs rounded-none h-5 px-1">
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
 
       {/* Main Content Area */}
