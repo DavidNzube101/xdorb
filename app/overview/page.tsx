@@ -7,7 +7,7 @@ import { apiClient, type DashboardStats, type PNodeMetrics } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUp, ArrowDown, Activity, Zap, Award, TrendingUp, Bot, MessageCircle, ExternalLink } from "lucide-react"
+import { ArrowUp, ArrowDown, Activity, Zap, Award, TrendingUp, Bot, MessageCircle, ExternalLink, Map, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { NotificationManager } from "@/components/notification-manager"
 import { EmbeddableWidgets } from "@/components/embeddable-widgets"
@@ -121,6 +121,71 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mt-1">Real-time pNode network monitoring</p>
         </div>
 
+        {/* Stats Grid */}
+        {statsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : stats ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon={Activity} label="Total Nodes" value={stats.totalNodes} change={5.2} />
+            <StatCard icon={Zap} label="Active Nodes" value={stats.activeNodes} change={2.1} />
+            <StatCard icon={TrendingUp} label="Network Health" value={stats.networkHealth} unit="%" extra={`Fetched ${stats.totalNodes} nodes in ${stats.fetchTime?.toFixed(1) || '0.0'}s`} />
+            <StatCard
+              icon={Award}
+              label="Total Rewards"
+              value={Math.floor(stats.totalRewards)}
+              unit="POL"
+              change={12.5}
+            />
+          </div>
+        ) : null}
+
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link href="/leaderboard" className="block">
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full border-border bg-card">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                        <div className="p-3 bg-yellow-500/10 rounded-lg text-yellow-500">
+                            <Award className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">Leaderboard</CardTitle>
+                            <CardDescription>View top performers</CardDescription>
+                        </div>
+                    </CardHeader>
+                </Card>
+            </Link>
+            <Link href="/analytics" className="block">
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full border-border bg-card">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                        <div className="p-3 bg-blue-500/10 rounded-lg text-blue-500">
+                            <BarChart3 className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">Analytics</CardTitle>
+                            <CardDescription>Deep dive metrics</CardDescription>
+                        </div>
+                    </CardHeader>
+                </Card>
+            </Link>
+            <Link href="/network" className="block">
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full border-border bg-card">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                        <div className="p-3 bg-purple-500/10 rounded-lg text-purple-500">
+                            <Map className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">Network Map</CardTitle>
+                            <CardDescription>Global distribution</CardDescription>
+                        </div>
+                    </CardHeader>
+                </Card>
+            </Link>
+        </div>
+
         {/* Telegram Bot */}
         <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
           <CardHeader>
@@ -161,35 +226,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Stats Grid */}
-        {statsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : stats ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Activity} label="Total Nodes" value={stats.totalNodes} change={5.2} />
-            <StatCard icon={Zap} label="Active Nodes" value={stats.activeNodes} change={2.1} />
-            <StatCard icon={TrendingUp} label="Network Health" value={stats.networkHealth} unit="%" extra={`Fetched ${stats.totalNodes} nodes in ${stats.fetchTime?.toFixed(1) || '0.0'}s`} />
-            <StatCard
-              icon={Award}
-              label="Total Rewards"
-              value={Math.floor(stats.totalRewards)}
-              unit="POL"
-              change={12.5}
-            />
-          </div>
-        ) : null}
-
-         {/* Notifications */}
-         <NotificationManager />
+         {/* Notifications - Removed as per request */}
+         {/* <NotificationManager /> */}
 
           {/* Embeddable Widgets */}
           <EmbeddableWidgets />
 
-          {/* Recent Activity */}
+          {/* Recent Activity - Removed as per request */}
+          {/*
           {stats && (
             <Card className="border-border bg-card">
               <CardContent className="pt-6">
@@ -199,6 +243,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           )}
+          */}
       </div>
     </DashboardLayout>
   )
