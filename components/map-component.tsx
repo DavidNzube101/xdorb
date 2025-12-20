@@ -50,9 +50,11 @@ function MapController({ center, zoom }: { center?: [number, number], zoom?: num
 
 function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat: number, lng: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const pointerInteracting = useRef<number | null>(null)
+  const pointerInteractionMovement = useRef(0)
+  const phi = useRef(0)
 
   useEffect(() => {
-    let phi = 0
     let width = 0
     
     const onResize = () => canvasRef.current && (width = canvasRef.current.offsetWidth)
@@ -61,20 +63,18 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
 
     if (!canvasRef.current) return
 
-    // Convert data to markers
+    // Convert data to markers with smaller, crisp sizes
     const markers = data.map(d => ({
         location: [d.lat, d.lng] as [number, number],
-        size: Math.max(0.05, d.intensity / 200) // Scale size
+        size: 0.03 + (d.intensity / 500) // Much smaller base size (0.03) for "single point" look
     }))
 
-    // Add highlight marker if exists
+    // Add highlight marker
     if (highlight) {
         markers.push({
             location: [highlight.lat, highlight.lng],
-            size: 0.1
+            size: 0.08
         })
-        // Set initial rotation to face highlight
-        // phi = highlight.lng * (Math.PI / 180) // Simple approx
     }
 
     const globe = createGlobe(canvasRef.current, {
@@ -82,21 +82,23 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
       width: width * 2,
       height: width * 2,
       phi: 0,
-      theta: 0,
+      theta: 0.3, // Slight tilt
       dark: 1,
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 6,
       baseColor: [0.1, 0.1, 0.15], // Dark blueish
-      markerColor: [0.9, 0.7, 0.2], // Gold
-      glowColor: [0.2, 0.2, 0.3],
+      markerColor: [1, 0.8, 0.4], // Gold/Yellow (Crisp)
+      glowColor: [0.1, 0.1, 0.2], // Very subtle glow, mostly dark
       opacity: 0.8,
       markers: markers,
       onRender: (state) => {
-        // Called on every animation frame.
-        // `state` will be an empty object, return updated params.
-        state.phi = phi
-        phi += 0.003 // Rotation speed
+        // Interactivity handling
+        if (!pointerInteracting.current) {
+            phi.current += 0.003 // Auto-rotate
+        }
+        
+        state.phi = phi.current + pointerInteractionMovement.current
         state.width = width * 2
         state.height = width * 2
       },
@@ -109,7 +111,32 @@ function GlobeView({ data, highlight }: { data: HeatmapData[], highlight?: { lat
   }, [data, highlight])
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden">
+    <div className="w-full h-full flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden cursor-grab active:cursor-grabbing"
+         onPointerDown={(e) => {
+            pointerInteracting.current = e.clientX - pointerInteractionMovement.current;
+            if(canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
+         }}
+         onPointerUp={() => {
+            pointerInteracting.current = null;
+            if(canvasRef.current) canvasRef.current.style.cursor = 'grab';
+         }}
+         onPointerOut={() => {
+            pointerInteracting.current = null;
+            if(canvasRef.current) canvasRef.current.style.cursor = 'grab';
+         }}
+         onMouseMove={(e) => {
+            if (pointerInteracting.current !== null) {
+                const delta = e.clientX - pointerInteracting.current;
+                pointerInteractionMovement.current = delta * 0.005;
+            }
+         }}
+         onTouchMove={(e) => {
+            if (pointerInteracting.current !== null && e.touches[0]) {
+                const delta = e.touches[0].clientX - pointerInteracting.current;
+                pointerInteractionMovement.current = delta * 0.005;
+            }
+         }}
+    >
         <canvas
             ref={canvasRef}
             style={{ width: '100%', height: '100%', maxWidth: '600px', maxHeight: '600px', aspectRatio: '1' }}
@@ -166,8 +193,8 @@ export default function MapComponent({ center, zoom, highlight }: MapComponentPr
 
   return (
     <div className="h-96 rounded-lg overflow-hidden border border-border bg-card relative group">
-      {/* View Toggle */}
-      <div className="absolute top-3 right-3 z-[400] flex bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      {/* View Toggle - Always visible and high z-index */}
+      <div className="absolute top-3 right-3 z-[1001] flex bg-card/90 backdrop-blur-sm border border-border rounded-lg p-1 shadow-sm">
           <button 
             onClick={() => setViewMode("3d")} 
             className={`p-1.5 rounded-md transition-colors ${viewMode === "3d" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
