@@ -4,14 +4,14 @@ import { useState, useMemo, useEffect } from "react"
 import useSWR from "swr"
 import { formatDistanceToNow } from "date-fns"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { apiClient } from "@/lib/api"
+import { apiClient, PNodeMetrics } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye } from "lucide-react"
+import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EngagingLoader } from "@/components/engaging-loader"
@@ -71,6 +71,44 @@ export default function PNodesPage() {
   const [timeFormat, setTimeFormat] = useState<'absolute' | 'relative'>('relative');
   const [isMobile, setIsMobile] = useState(false);
   const [timeLeft, setTimeLeft] = useState(35);
+  
+  const ENABLE_SORT = process.env.NEXT_PUBLIC_FEATURE_FLAG_PNODE_TBH_SORT === 'true';
+
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<{ field: string | null; direction: 'asc' | 'desc' | null }>({
+    field: null,
+    direction: null,
+  });
+
+  const handleSort = (field: string) => {
+    if (!ENABLE_SORT) return;
+    setSortConfig((prev) => {
+      console.log('Current:', prev, 'Clicking:', field); // Debug log
+      
+      // Same field clicked
+      if (prev.field === field) {
+        if (prev.direction === 'asc') {
+          console.log('-> Going DESC');
+          return { field, direction: 'desc' as const };
+        } else if (prev.direction === 'desc') {
+          console.log('-> RESETTING');
+          return { field: null, direction: null };
+        }
+      }
+      
+      // New field clicked or coming from reset
+      console.log('-> Going ASC');
+      return { field, direction: 'asc' as const };
+    });
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+      if (!ENABLE_SORT) return null;
+      if (sortConfig.field !== field) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground opacity-50" />;
+      return sortConfig.direction === 'asc' 
+        ? <ArrowUp className="w-3 h-3 ml-1 text-primary" />
+        : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -116,11 +154,73 @@ export default function PNodesPage() {
     });
   }, [result, statusFilter, regionFilter]);
 
+  const sortedPnodes = useMemo(() => {
+    console.log('Sorting with config:', sortConfig); // Debug log
+    let nodes = [...filteredPnodes];
+    
+    // NO SORT ACTIVE - Default sort (Reset State)
+    if (!ENABLE_SORT || !sortConfig.field || !sortConfig.direction) {
+        console.log('Using DEFAULT sort');
+        return nodes.sort((a, b) => {
+            // Active status first
+            if (a.status === 'active' && b.status !== 'active') return -1;
+            if (a.status !== 'active' && b.status === 'active') return 1;
+            // Then alphabetically
+            return a.name.localeCompare(b.name);
+        });
+    }
+    
+    // COLUMN SORT ACTIVE
+    console.log(`Sorting by ${sortConfig.field} ${sortConfig.direction}`);
+    
+    nodes.sort((a, b) => {
+        let valA: any;
+        let valB: any;
+        
+        switch (sortConfig.field) {
+            case 'storage':
+                valA = a.storageUsed ?? 0;
+                valB = b.storageUsed ?? 0;
+                break;
+            case 'lastSeen':
+                valA = new Date(a.lastSeen ?? 0).getTime();
+                valB = new Date(b.lastSeen ?? 0).getTime();
+                break;
+            case 'uptime':
+            case 'latency':
+            case 'xdnScore':
+                 // Numeric fields with fallback
+                 valA = (a as any)[sortConfig.field!] ?? 0;
+                 valB = (b as any)[sortConfig.field!] ?? 0;
+                 break;
+            case 'name':
+            case 'location':
+            case 'status':
+                 // String fields
+                 valA = ((a as any)[sortConfig.field!] ?? '').toLowerCase();
+                 valB = ((b as any)[sortConfig.field!] ?? '').toLowerCase();
+                 break;
+            default:
+                 valA = (a as any)[sortConfig.field!] ?? '';
+                 valB = (b as any)[sortConfig.field!] ?? '';
+        }
+
+        // Compare
+        let comparison = 0;
+        if (valA < valB) comparison = -1;
+        if (valA > valB) comparison = 1;
+
+        // Apply direction
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+    return nodes;
+  }, [filteredPnodes, sortConfig]);
+
   const paginatedPnodes = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    return filteredPnodes.slice(start, end);
-  }, [filteredPnodes, currentPage]);
+    return sortedPnodes.slice(start, end);
+  }, [sortedPnodes, currentPage]);
 
   const totalPages = Math.ceil(filteredPnodes.length / ITEMS_PER_PAGE);
 
@@ -330,6 +430,7 @@ export default function PNodesPage() {
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => {
                                 setStatusFilter("all"); setRegionFilter("all"); setSearch(""); setCurrentPage(1);
+                                setSortConfig({ field: null, direction: null });
                             }} className="hidden md:inline">
                                 Clear Filters
                             </Button>
@@ -342,95 +443,111 @@ export default function PNodesPage() {
                     ) : view === 'list' ? (
                         <div className="overflow-x-auto">
                             <table className="w-full" role="table">
-                                <thead>
-                                    <tr className="border-b border-border" role="row">
-                                        <th className="text-left p-3 font-semibold text-foreground">Name</th>
-                                        <th className="text-left p-3 font-semibold text-foreground">Location</th>
-                                        <th className="text-left p-3 font-semibold text-foreground hidden md:table-cell">Status</th>
-                                        <th className="text-left p-3 font-semibold text-foreground">Uptime</th>
-                                        <th className="text-left p-3 font-semibold text-foreground">Latency</th>
-                                        <th className="text-left p-3 font-semibold text-foreground">
-                                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                                Storage
-                                                <Select onValueChange={(v: 'TB' | 'GB' | 'MB') => setListStorageUnit(v)} defaultValue={listStorageUnit}>
-                                                    <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="MB">MB</SelectItem>
-                                                        <SelectItem value="GB">GB</SelectItem>
-                                                        <SelectItem value="TB">TB</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </th>
-                                        <th className="text-left p-3 font-semibold text-foreground">
-                                            <div className="flex items-center gap-1">
-                                                Last Seen
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setTimeFormat(p => p === 'absolute' ? 'relative' : 'absolute')}>
-                                                    <Eye className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </th>
-                                        <th className="text-left p-3 font-semibold text-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {paginatedPnodes.map((node) => (
-                                    <tr key={node.id} className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => window.location.href = `/pnodes/${node.id}`} role="row">
-                                        <td className="p-3 font-medium text-foreground">
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex flex-col">
-                                                        <div className="flex items-center gap-2">
-                                                            <span>{node.name}</span>
-                                                            {node.registered && (
-                                                                <Dialog>
-                                                                    <DialogTrigger asChild>
-                                                                        <Badge variant="default" className="cursor-pointer text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo(node.id) }}>Registered</Badge>
-                                                                    </DialogTrigger>
-                                                                    <DialogContent>
-                                                                        <DialogHeader>
-                                                                            <DialogTitle>Registered Node</DialogTitle>
-                                                                            <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
-                                                                        </DialogHeader>
-                                                                        <div className="py-4">
-                                                                            <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
-                                                                            <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
-                                                                        </div>
-                                                                        <DialogFooter>
-                                                                            <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
-                                                                                <Button variant="link">See Xandeum's Publication</Button>
-                                                                            </a>
-                                                                        </DialogFooter>
-                                                                    </DialogContent>
-                                                                </Dialog>
-                                                            )}
-                                                            <Badge className={cn(statusBadgeVariant(node.status), "md:hidden")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
-                                                        </div>
-                                                        <Badge variant="secondary" className="w-fit text-[10px] px-1 h-5 mt-1 font-mono">XDN: {node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}</Badge>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>{node.id}</p></TooltipContent>
-                                            </Tooltip>
-                                        </td>
-                                        <td className="p-3 text-muted-foreground">{node.location}</td>
-                                        <td className="p-3 hidden md:table-cell"><Badge className={cn(statusBadgeVariant(node.status))}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge></td>
-                                        <td className="p-3 text-muted-foreground">{formatUptime(node.uptime)}</td>
-                                        <td className="p-3 text-muted-foreground">{node.latency}ms</td>
-                                        <td className="p-3 text-muted-foreground">{convertBytes(node.storageUsed, listStorageUnit)} / {convertBytes(node.storageCapacity, listStorageUnit)} {listStorageUnit}</td>
-                                        <td className="p-3 text-muted-foreground">{formatLastSeen(node.lastSeen)}</td>
-                                        <td className="p-3">
-                                            <div className="flex gap-2">
-                                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); toggleBookmark(node.id); }} className={bookmarked.has(node.id) ? "text-primary" : ""}>
-                                                    <Bookmark className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                                                                <thead>
+                                                                                                    <tr className="border-b border-border" role="row">
+                                                                                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('name')}>
+                                                                                                            <div className="flex items-center">Name <SortIcon field="name" /></div>
+                                                                                                        </th>
+                                                                                                        <th className="text-left p-3 font-semibold text-foreground">Location</th>
+                                                                                                        <th className="text-left p-3 font-semibold text-foreground hidden md:table-cell">Status</th>
+                                                                                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('uptime')}>
+                                                                                                            <div className="flex items-center">Uptime <SortIcon field="uptime" /></div>
+                                                                                                        </th>
+                                                                                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('latency')}>
+                                                                                                            <div className="flex items-center">Latency <SortIcon field="latency" /></div>
+                                                                                                        </th>
+                                                                                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('storage')}>
+                                                                                                            <div className="flex items-center gap-1">
+                                                                                                                Storage <SortIcon field="storage" />
+                                                                                                                <div onClick={e => e.stopPropagation()}>
+                                                                                                                    <Select onValueChange={(v: 'TB' | 'GB' | 'MB') => setListStorageUnit(v)} defaultValue={listStorageUnit}>
+                                                                                                                        <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0">
+                                                                                                                            <SelectValue />
+                                                                                                                        </SelectTrigger>
+                                                                                                                        <SelectContent>
+                                                                                                                            <SelectItem value="MB">MB</SelectItem>
+                                                                                                                            <SelectItem value="GB">GB</SelectItem>
+                                                                                                                            <SelectItem value="TB">TB</SelectItem>
+                                                                                                                        </SelectContent>
+                                                                                                                    </Select>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </th>
+                                                                                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('lastSeen')}>
+                                                                                                            <div className="flex items-center gap-1">
+                                                                                                                Last Seen <SortIcon field="lastSeen" />
+                                                                                                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={(e) => { e.stopPropagation(); setTimeFormat(p => p === 'absolute' ? 'relative' : 'absolute') }}>
+                                                                                                                    <Eye className="w-3 h-3" />
+                                                                                                                </Button>
+                                                                                                            </div>
+                                                                                                        </th>
+                                                                                                        <th className="text-left p-3 font-semibold text-foreground">Actions</th>
+                                                                                                    </tr>
+                                                                                                </thead>                                                                <tbody>
+                                                                    {paginatedPnodes.map((node) => (
+                                                                    <tr key={node.id} className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => window.location.href = `/pnodes/${node.id}`} role="row">
+                                                                        <td className="p-3 font-medium text-foreground">
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <div className="flex flex-col">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span>{node.name}</span>
+                                                                                            {node.registered && (
+                                                                                                <Dialog>
+                                                                                                    <DialogTrigger asChild>
+                                                                                                        <Badge variant="default" className="cursor-pointer text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo(node.id) }}>Registered</Badge>
+                                                                                                    </DialogTrigger>
+                                                                                                    <DialogContent>
+                                                                                                        <DialogHeader>
+                                                                                                            <DialogTitle>Registered Node</DialogTitle>
+                                                                                                            <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
+                                                                                                        </DialogHeader>
+                                                                                                        <div className="py-4">
+                                                                                                            <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
+                                                                                                            <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
+                                                                                                        </div>
+                                                                                                        <DialogFooter>
+                                                                                                            <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
+                                                                                                                <Button variant="link">See Xandeum's Publication</Button>
+                                                                                                            </a>
+                                                                                                        </DialogFooter>
+                                                                                                    </DialogContent>
+                                                                                                </Dialog>
+                                                                                            )}
+                                                                                            <Badge className={cn(statusBadgeVariant(node.status), "md:hidden")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
+                                                                                        </div>
+                                                                                        <Badge variant="secondary" className="w-fit text-[10px] px-1 h-5 mt-1 font-mono">XDN: {node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}</Badge>
+                                                                                    </div>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent><p>{node.id}</p></TooltipContent>
+                                                                            </Tooltip>
+                                                                        </td>
+                                                                        <td className="p-3 text-muted-foreground">{node.location}</td>
+                                                                        <td className="p-3 hidden md:table-cell"><Badge className={cn(statusBadgeVariant(node.status))}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge></td>
+                                                                        <td className="p-3 text-muted-foreground font-mono text-xs">{formatUptime(node.uptime)}</td>
+                                                                        <td className="p-3 text-muted-foreground">{node.latency}ms</td>
+                                                                        <td className="p-3 text-muted-foreground">
+                                                                            <div className="flex flex-col gap-1 w-[140px]">
+                                                                                <span className="text-xs font-mono">{convertBytes(node.storageUsed, listStorageUnit)} / {convertBytes(node.storageCapacity, listStorageUnit)} {listStorageUnit}</span>
+                                                                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                                                                    <div 
+                                                                                        className="h-full bg-primary/70 transition-all duration-500" 
+                                                                                        style={{ width: `${Math.min(100, (node.storageUsed / (node.storageCapacity || 1)) * 100)}%` }} 
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="p-3 text-muted-foreground text-xs">{formatLastSeen(node.lastSeen)}</td>
+                                                                        <td className="p-3">
+                                                                            <div className="flex gap-2">
+                                                                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); toggleBookmark(node.id); }} className={bookmarked.has(node.id) ? "text-primary" : ""}>
+                                                                                    <Bookmark className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                    ))}
+                                                                </tbody>                            </table>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

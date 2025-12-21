@@ -15,15 +15,25 @@ const loadingMessages = [
   "ProTip: Bookmark nodes to create a personalized watchlist for quick access.",
 ]
 
+const statusPhrases = ["Optimizing", "Fetching", "Aggregating"]
+
 export function EngagingLoader() {
   const [index, setIndex] = useState(0)
+  const [statusIndex, setStatusIndex] = useState(0)
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const tipInterval = setInterval(() => {
       setIndex((prevIndex) => (prevIndex + 1) % loadingMessages.length)
-    }, 3500) // Change message every 3.5 seconds for longer tips
+    }, 3500)
 
-    return () => clearInterval(interval)
+    const statusInterval = setInterval(() => {
+      setStatusIndex((prevIndex) => (prevIndex + 1) % statusPhrases.length)
+    }, 1500)
+
+    return () => {
+      clearInterval(tipInterval)
+      clearInterval(statusInterval)
+    }
   }, [])
 
   return (
@@ -54,8 +64,10 @@ export function EngagingLoader() {
         transition={{ delay: 2, duration: 0.8, ease: 'easeOut' }}
         className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 shadow-lg text-center"
       >
-        <p className="text-sm text-muted-foreground max-w-4xl mx-auto">
-          <strong>Backend status:</strong> Core infrastructure is optimized with a warm-start ritual, ensuring immediate responsiveness and zero cold-start latency.
+        <p className="text-sm text-muted-foreground max-w-4xl mx-auto flex items-center justify-center gap-2">
+          <span className="min-w-[100px] inline-block text-center italic">
+            {statusPhrases[statusIndex]}<span className="animate-pulse">...</span>
+          </span>
         </p>
       </motion.div>
     </div>
