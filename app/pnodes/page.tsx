@@ -18,6 +18,7 @@ import { EngagingLoader } from "@/components/engaging-loader"
 import { PriceMarquee } from "@/components/price-marquee"
 import { BuyXandButton } from "@/components/buy-xand-button"
 import { PNodeCard } from "@/components/pnode-card"
+import { SearchPalette } from "@/components/search-palette"
 import { cn } from "@/lib/utils"
 
 const ITEMS_PER_PAGE = 50
@@ -60,11 +61,11 @@ const formatUptime = (seconds: number) => {
 }
 
 export default function PNodesPage() {
-  const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState(search)
+  const [search, setSearch] = useState("") // Still used for non-palette filtering
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [searchOpen, setSearchOpen] = useState(false)
   
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [listStorageUnit, setListStorageUnit] = useState<'TB' | 'GB' | 'MB'>('TB');
@@ -96,26 +97,18 @@ export default function PNodesPage() {
   const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher, { refreshInterval: 60000 })
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
 
-  // Debounce search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search)
-      setCurrentPage(1)
-    }, 300)
-    return () => clearTimeout(handler)
-  }, [search])
-
   const filteredPnodes = useMemo(() => {
     if (!result?.data || !Array.isArray(result.data)) return [];
     return result.data.filter(node => {
         const statusMatch = statusFilter === 'all' || node.status === statusFilter;
         const regionMatch = regionFilter === 'all' || node.region === regionFilter;
-        const searchMatch = debouncedSearch === '' || 
-                            node.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
-                            node.location.toLowerCase().includes(debouncedSearch.toLowerCase());
+        const searchMatch = search === '' || 
+                            node.name.toLowerCase().includes(search.toLowerCase()) || 
+                            node.location.toLowerCase().includes(search.toLowerCase()) ||
+                            node.id.toLowerCase().includes(search.toLowerCase());
         return statusMatch && regionMatch && searchMatch;
     });
-  }, [result, statusFilter, regionFilter, debouncedSearch]);
+  }, [result, statusFilter, regionFilter, search]);
 
   const paginatedPnodes = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -203,6 +196,7 @@ export default function PNodesPage() {
   return (
     <TooltipProvider>
       <DashboardLayout>
+        <SearchPalette nodes={result?.data || []} open={searchOpen} setOpen={setSearchOpen} />
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-foreground">pNodes</h1>
@@ -217,16 +211,17 @@ export default function PNodesPage() {
             </div>
           
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                <div className="relative w-full md:w-96 group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Search nodes by name or location..."
-                        className="pl-10"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        aria-label="Search pNodes"
-                    />
-                </div>
+                <Button
+                    variant="outline"
+                    className="relative w-full md:w-96 group justify-start text-muted-foreground"
+                    onClick={() => setSearchOpen(true)}
+                >
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+                    <span className="pl-7">Search nodes...</span>
+                    <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                        <span className="text-xs">⌘</span>K
+                    </kbd>
+                </Button>
 
                 <div className="flex gap-2 flex-wrap w-full md:w-auto">
                     <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
