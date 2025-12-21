@@ -61,7 +61,6 @@ const formatUptime = (seconds: number) => {
 }
 
 export default function PNodesPage() {
-  const [search, setSearch] = useState("") // Still used for non-palette filtering
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -108,28 +107,14 @@ export default function PNodesPage() {
   })
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
 
-  // Debounce search input (for non-palette filtering, if any)
-  // This part is less critical now with the command palette but good to keep
-  // useEffect(() => {
-  //   const handler = setTimeout(() => {
-  //     // setDebouncedSearch(search)
-  //     // setCurrentPage(1)
-  //   }, 300)
-  //   return () => clearTimeout(handler)
-  // }, [search])
-
   const filteredPnodes = useMemo(() => {
     if (!result?.data || !Array.isArray(result.data)) return [];
     return result.data.filter(node => {
         const statusMatch = statusFilter === 'all' || node.status === statusFilter;
         const regionMatch = regionFilter === 'all' || node.region === regionFilter;
-        const searchMatch = search === '' || 
-                            node.name.toLowerCase().includes(search.toLowerCase()) || 
-                            node.location.toLowerCase().includes(search.toLowerCase()) ||
-                            node.id.toLowerCase().includes(search.toLowerCase());
-        return statusMatch && regionMatch && searchMatch;
+        return statusMatch && regionMatch;
     });
-  }, [result, statusFilter, regionFilter, search]);
+  }, [result, statusFilter, regionFilter]);
 
   const paginatedPnodes = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -338,9 +323,9 @@ export default function PNodesPage() {
                                 </Button>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleReload} disabled={reloading} className="gap-2">
-                                <RefreshCw className={`w-4 h-4 ${reloading ? 'animate-spin' : ''}`} />
+                                <RefreshCw className={`w-4 h-4 ${reloading || isLoading ? 'animate-spin' : ''}`} />
                                 <span className="hidden sm:inline">
-                                {reloading ? 'Reloading...' : 'Pull Fresh Data'}
+                                {reloading ? 'Reloading...' : `Refresh in ${timeLeft}s`}
                                 </span>
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => {

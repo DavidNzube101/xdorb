@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const loadingMessages = [
+  "ProTip: Press Command+K to open the search palette and find nodes instantly.",
   "ProTip: Select two nodes and click 'Compare' to get an AI-powered performance analysis.",
   "ProTip: Access the full-screen Trading Terminal to view charts and swap tokens instantly.",
   "ProTip: Embed live network stats on your own website using our custom Widgets.",
@@ -12,7 +13,6 @@ const loadingMessages = [
   "ProTip: Use the Telegram Bot to get instant alerts when your favorite node goes offline.",
   "ProTip: Visit the Leaderboard to see the top-performing nodes ranked by XDN Score.",
   "ProTip: Bookmark nodes to create a personalized watchlist for quick access.",
-  "ProTip: Press Command+K to open the search palette and find nodes instantly.",
 ]
 
 export function EngagingLoader() {
