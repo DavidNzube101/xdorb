@@ -71,6 +71,14 @@ export default function PNodesPage() {
   const [listStorageUnit, setListStorageUnit] = useState<'TB' | 'GB' | 'MB'>('TB');
   const [timeFormat, setTimeFormat] = useState<'absolute' | 'relative'>('relative');
   const [isMobile, setIsMobile] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(35);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -94,8 +102,21 @@ export default function PNodesPage() {
     }
   }, [view, isMobile]);
 
-  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher, { refreshInterval: 60000 })
+  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher, { 
+    refreshInterval: 35000,
+    onSuccess: () => setTimeLeft(35)
+  })
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
+
+  // Debounce search input (for non-palette filtering, if any)
+  // This part is less critical now with the command palette but good to keep
+  // useEffect(() => {
+  //   const handler = setTimeout(() => {
+  //     // setDebouncedSearch(search)
+  //     // setCurrentPage(1)
+  //   }, 300)
+  //   return () => clearTimeout(handler)
+  // }, [search])
 
   const filteredPnodes = useMemo(() => {
     if (!result?.data || !Array.isArray(result.data)) return [];

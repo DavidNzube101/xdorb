@@ -12,6 +12,7 @@ const loadingMessages = [
   "ProTip: Use the Telegram Bot to get instant alerts when your favorite node goes offline.",
   "ProTip: Visit the Leaderboard to see the top-performing nodes ranked by XDN Score.",
   "ProTip: Bookmark nodes to create a personalized watchlist for quick access.",
+  "ProTip: Press Command+K to open the search palette and find nodes instantly.",
 ]
 
 export function EngagingLoader() {
