@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye, ArrowUpDown, ArrowUp, ArrowDown, Star } from "lucide-react"
+import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye, ArrowUpDown, ArrowUp, ArrowDown, Star, Lock } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EngagingLoader } from "@/components/engaging-loader"
@@ -23,8 +23,12 @@ import { cn } from "@/lib/utils"
 
 const ITEMS_PER_PAGE = 50
 
-// Define a new type that includes credits
-export type PNodeWithCredits = PNodeMetrics & { credits?: number };
+// Define a new type that includes credits, rank, and private status
+export type PNodeWithCredits = PNodeMetrics & { 
+    credits?: number;
+    rank?: number;
+    isPrivate?: boolean;
+};
 
 const fetcher = (url: string) => apiClient.getPNodes({
     page: 1,
@@ -90,24 +94,13 @@ export default function PNodesPage() {
 
   const handleSort = (field: string) => {
     setSortConfig(currentSort => {
-      // If clicking a different column, start fresh with ascending
       if (currentSort.field !== field) {
         return { field, direction: 'asc' };
       }
-
-      // If same column, cycle through states
       if (currentSort.direction === 'asc') {
-        // First click was asc, now go to desc
         return { field, direction: 'desc' };
       }
-      
-      if (currentSort.direction === 'desc') {
-        // Second click was desc, now reset to default
-        return { field: null, direction: null };
-      }
-
-      // Shouldn't reach here, but just in case
-      return { field, direction: 'asc' };
+      return { field: null, direction: null };
     });
   };
 
@@ -156,9 +149,20 @@ export default function PNodesPage() {
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
   const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
 
-  const nodesWithCredits = useMemo(() => {
+  const nodesWithData = useMemo(() => {
     if (!result?.data || !Array.isArray(result.data)) return [];
 
+    // 1. Deduplicate nodes
+    const uniqueNodes = [...new Map(result.data.map(node => [node.id, node])).values()];
+
+    // 2. Create a map of ranks based on XDN score
+    const rankedNodes = [...uniqueNodes].sort((a, b) => (b.xdnScore ?? 0) - (a.xdnScore ?? 0));
+    const rankMap = new Map<string, number>();
+    rankedNodes.forEach((node, index) => {
+        rankMap.set(node.id, index + 1);
+    });
+
+    // 3. Create a map of credits
     const creditsMap = new Map<string, number>();
     if (creditsData) {
         creditsData.forEach(item => {
@@ -166,115 +170,78 @@ export default function PNodesPage() {
         });
     }
 
-    const mappedNodes = result.data.map((node): PNodeWithCredits => {
+    // 4. Combine all data
+    return uniqueNodes.map((node): PNodeWithCredits => {
         const storageUsedInBytes = (node.storageUsed || 0) * 1024 * 1024;
         const normalizedNodeId = node.id.trim().toLowerCase();
-        const foundCredits = creditsMap.get(normalizedNodeId) ?? 0;
         
+        const isPrivate = (node.packetsIn === 0 && node.packetsOut === 0 && node.cpuPercent === 0 && node.memoryUsed === 0);
+
         return {
             ...node,
             storageUsed: storageUsedInBytes,
-            credits: foundCredits,
+            credits: creditsMap.get(normalizedNodeId) ?? 0,
+            rank: rankMap.get(node.id),
+            isPrivate: isPrivate,
         };
     });
-
-    // Deduplicate nodes based on their ID
-    const uniqueNodes = [
-        ...new Map(mappedNodes.map(node => [node.id, node])).values()
-    ];
-
-    return uniqueNodes;
   }, [result, creditsData]);
 
   const filteredPnodes = useMemo(() => {
-    return nodesWithCredits.filter(node => {
+    return nodesWithData.filter(node => {
         const statusMatch = statusFilter === 'all' || node.status === statusFilter;
         const regionMatch = regionFilter === 'all' || node.region === regionFilter;
         return statusMatch && regionMatch;
     });
-  }, [nodesWithCredits, statusFilter, regionFilter]);
+  }, [nodesWithData, statusFilter, regionFilter]);
 
   const sortedPnodes = useMemo(() => {
     let nodes = [...filteredPnodes];
     const { field, direction } = sortConfig;
 
-    // If no sort is applied, return default sort
     if (!field || !direction) {
       return nodes.sort((a, b) => {
-        // Active nodes first
         if (a.status === 'active' && b.status !== 'active') return -1;
         if (a.status !== 'active' && b.status === 'active') return 1;
-        // Then alphabetical by name
         return a.name.localeCompare(b.name);
       });
     }
 
-    // Define which fields should be treated as numbers
-    const numericFields = new Set([
-      'credits',
-      'uptime', 
-      'latency',
-      'xdnScore',
-      'storageUsed',
-      'storageCapacity',
-      'performance',
-      'rewards',
-      'validations',
-      'stake',
-      'riskScore',
-      'cpuPercent',
-      'memoryUsed',
-      'packetsIn',
-      'packetsOut'
-    ]);
-
-    // Define which fields should be treated as dates
+    const numericFields = new Set(['credits', 'uptime', 'latency', 'xdnScore', 'storageUsed', 'rank']);
     const dateFields = new Set(['lastSeen']);
 
-    // Separate active and inactive nodes
     const activeNodes = nodes.filter(n => n.status === 'active');
     const inactiveNodes = nodes.filter(n => n.status !== 'active');
 
-    // Sort function to apply to both groups
     const sortFunction = (a: any, b: any) => {
       let valA: any = (a as any)[field];
       let valB: any = (b as any)[field];
 
-      // Handle numeric fields
       if (numericFields.has(field)) {
-        // Convert to numbers, treating undefined/null/NaN as 0
         const numA = Number(valA);
         const numB = Number(valB);
-        
         const finalA = isNaN(numA) ? 0 : numA;
         const finalB = isNaN(numB) ? 0 : numB;
-        
         const comparison = finalA - finalB;
         return direction === 'asc' ? comparison : -comparison;
       }
 
-      // Handle date fields
       if (dateFields.has(field)) {
         const dateA = valA ? new Date(valA).getTime() : 0;
         const dateB = valB ? new Date(valB).getTime() : 0;
-        
         const comparison = dateA - dateB;
         return direction === 'asc' ? comparison : -comparison;
       }
 
-      // Handle string fields (default case)
       const strA = (valA?.toString() ?? '').toLowerCase();
       const strB = (valB?.toString() ?? '').toLowerCase();
-      
       const comparison = strA.localeCompare(strB);
       return direction === 'asc' ? comparison : -comparison;
     };
 
-    // Sort each group independently
     activeNodes.sort(sortFunction);
     inactiveNodes.sort(sortFunction);
 
-    // Combine: active nodes first, then inactive nodes
     return [...activeNodes, ...inactiveNodes];
   }, [filteredPnodes, sortConfig]);
 
@@ -364,7 +331,7 @@ export default function PNodesPage() {
   return (
     <TooltipProvider>
       <DashboardLayout>
-        <SearchPalette nodes={nodesWithCredits || []} open={searchOpen} setOpen={setSearchOpen} />
+        <SearchPalette nodes={nodesWithData || []} open={searchOpen} setOpen={setSearchOpen} />
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-foreground">pNodes</h1>
@@ -579,6 +546,12 @@ export default function PNodesPage() {
                                                                         </DialogFooter>
                                                                     </DialogContent>
                                                                 </Dialog>
+                                                            )}
+                                                            {node.isPrivate && (
+                                                                <Badge variant="outline" className="cursor-pointer text-[10px] px-1 h-5">
+                                                                    <Lock className="w-3 h-3 mr-1" />
+                                                                    Private
+                                                                </Badge>
                                                             )}
                                                             <Badge className={cn(statusBadgeVariant(node.status), "md:hidden")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
                                                         </div>

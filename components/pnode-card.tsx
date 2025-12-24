@@ -8,13 +8,17 @@ import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Star } from "lucide-react"
+import { Lock } from "lucide-react"
 
-// The parent page now provides the node with credits
-type PNodeWithCredits = PNodeMetrics & { credits?: number };
+// The parent page now provides the node with more data
+type PNodeWithData = PNodeMetrics & { 
+    credits?: number;
+    rank?: number;
+    isPrivate?: boolean;
+};
 
 interface PNodeCardProps {
-  node: PNodeWithCredits
+  node: PNodeWithData
 }
 
 const statusBadgeVariant = (status: string) => {
@@ -105,10 +109,20 @@ export function PNodeCard({ node }: PNodeCardProps) {
             <p className="text-muted-foreground">XDN Score</p>
             <p className="font-semibold">{node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}</p>
           </div>
-          <div>
-            <p className="text-muted-foreground">CPU</p>
-            <p className="font-semibold">{node.cpuPercent?.toFixed(1) ?? '-'}%</p>
-          </div>
+          {node.isPrivate ? (
+            <div>
+                <p className="text-muted-foreground">Type</p>
+                <Badge variant="outline" className="font-semibold">
+                    <Lock className="w-3 h-3 mr-1" />
+                    Private
+                </Badge>
+            </div>
+          ) : (
+            <div>
+                <p className="text-muted-foreground">CPU</p>
+                <p className="font-semibold">{node.cpuPercent?.toFixed(1) ?? '-'}%</p>
+            </div>
+          )}
           <div onClick={(e) => e.stopPropagation()}>
             <p className="text-muted-foreground">Storage</p>
             <div className="flex items-center gap-1">
@@ -127,31 +141,37 @@ export function PNodeCard({ node }: PNodeCardProps) {
                 </Select>
             </div>
           </div>
+          <div>
+            <p className="text-muted-foreground">Rank</p>
+            <p className="font-semibold">#{node.rank ?? 'N/A'}</p>
+          </div>
         </div>
-        {node.registered && (
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Badge variant="default" className="mt-4 text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700 w-fit cursor-pointer" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo() }}>
-                        Registered
-                    </Badge>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Registered Node</DialogTitle>
-                        <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
-                        <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
-                    </div>
-                    <DialogFooter>
-                        <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
-                            <Button variant="link">See Xandeum's Publication</Button>
-                        </a>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        )}
+        <div className="flex flex-wrap gap-2 mt-4">
+            {node.registered && (
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Badge variant="default" className="text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700 w-fit cursor-pointer" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo() }}>
+                            Registered
+                        </Badge>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Registered Node</DialogTitle>
+                            <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
+                            <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
+                        </div>
+                        <DialogFooter>
+                            <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
+                                <Button variant="link">See Xandeum's Publication</Button>
+                            </a>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+        </div>
       </CardContent>
     </Card>
   )

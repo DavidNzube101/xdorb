@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star } from "lucide-react"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star, Lock } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -447,6 +447,8 @@ export default function PNodeDetailPage() {
     )
   }
 
+  const isPrivate = node && (node.packetsIn === 0 && node.packetsOut === 0 && (node.cpuPercent ?? 0) === 0 && (node.memoryUsed ?? 0) === 0);
+
   return (
     <TooltipProvider>
       <DashboardLayout>
@@ -596,11 +598,11 @@ export default function PNodeDetailPage() {
                     <CardContent className="p-0 h-[300px] lg:h-[400px]">
                       {node.lat && node.lng ? (
                         <MapComponent
-                           center={[node.lat, node.lng]}
-                           zoom={6}
-                           highlight={{ lat: node.lat, lng: node.lng, name: node.name }}
+                           center={[node.lat, node.lng]} 
+                           zoom={6} 
+                           highlight={{ lat: node.lat, lng: node.lng, name: node.name }} 
                         />
-                      ) : (
+                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           Location data not available
                         </div>
@@ -623,7 +625,13 @@ export default function PNodeDetailPage() {
              </div>
 
             <div className="grid grid-cols-2 gap-4 lg:order-2 order-2 h-full">
-                <Card className="border-border bg-card flex flex-col">
+                <Card className="border-border bg-card flex flex-col relative">
+                  {isPrivate && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+                      <Lock className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground text-sm">Private Node</p>
+                    </div>
+                  )}
                   <CardHeader className="pb-2">
                     <p className="text-sm text-muted-foreground">Memory</p>
                     <p className="text-2xl font-bold text-foreground">
@@ -713,7 +721,13 @@ export default function PNodeDetailPage() {
                    </CardFooter>
                 </Card>
 
-                <Card className="border-border bg-card flex flex-col">
+                <Card className="border-border bg-card flex flex-col relative">
+                  {isPrivate && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+                      <Lock className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground text-sm">Private Node</p>
+                    </div>
+                  )}
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                         <Cpu className="w-4 h-4 text-muted-foreground" />
@@ -832,6 +846,12 @@ export default function PNodeDetailPage() {
                              </DialogContent>
                            </Dialog>
                          </div>
+                       )}
+                       {isPrivate && (
+                         <Badge variant="outline" className="flex items-center gap-1 text-[10px] px-1 h-5">
+                           <Lock className="w-3 h-3" />
+                           Private
+                         </Badge>
                        )}
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                          <div className="space-y-4">
