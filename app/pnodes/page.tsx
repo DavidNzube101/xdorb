@@ -83,35 +83,38 @@ export default function PNodesPage() {
   const [timeFormat, setTimeFormat] = useState<'absolute' | 'relative'>('relative');
   const [isMobile, setIsMobile] = useState(false);
   const [timeLeft, setTimeLeft] = useState(35);
-  
-  const ENABLE_SORT = process.env.NEXT_PUBLIC_FEATURE_FLAG_PNODE_TBH_SORT === 'true';
-
-  // Sorting State
   const [sortConfig, setSortConfig] = useState<{ field: string | null; direction: 'asc' | 'desc' | null }>({
     field: null,
     direction: null,
   });
 
   const handleSort = (field: string) => {
-    if (!ENABLE_SORT) return;
-    setSortConfig((prev) => {
-      // Same field clicked
-      if (prev.field === field) {
-        if (prev.direction === 'asc') {
-          return { field, direction: 'desc' as const };
-        } else if (prev.direction === 'desc') {
-          return { field: null, direction: null };
-        }
+    setSortConfig(currentSort => {
+      // If clicking a different column, start fresh with ascending
+      if (currentSort.field !== field) {
+        return { field, direction: 'asc' };
+      }
+
+      // If same column, cycle through states
+      if (currentSort.direction === 'asc') {
+        // First click was asc, now go to desc
+        return { field, direction: 'desc' };
       }
       
-      // New field clicked or coming from reset
-      return { field, direction: 'asc' as const };
+      if (currentSort.direction === 'desc') {
+        // Second click was desc, now reset to default
+        return { field: null, direction: null };
+      }
+
+      // Shouldn't reach here, but just in case
+      return { field, direction: 'asc' };
     });
   };
 
   const SortIcon = ({ field }: { field: string }) => {
-      if (!ENABLE_SORT) return null;
-      if (sortConfig.field !== field) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground opacity-50" />;
+      if (sortConfig.field !== field || !sortConfig.direction) {
+        return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground opacity-50" />;
+      }
       return sortConfig.direction === 'asc' 
         ? <ArrowUp className="w-3 h-3 ml-1 text-primary" />
         : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
@@ -158,27 +161,29 @@ export default function PNodesPage() {
 
     const creditsMap = new Map<string, number>();
     if (creditsData) {
-        // The pod_id from the credits API is expected to match the node.id
-        // Normalize by trimming and converting to lowercase for robust matching
         creditsData.forEach(item => {
             creditsMap.set(item.pod_id.trim().toLowerCase(), item.credits);
         });
     }
 
-    return result.data.map((node): PNodeWithCredits => {
-        // API sends storageUsed in MB, but storageCapacity in Bytes.
-        // We convert storageUsed to bytes for consistent calculations.
+    const mappedNodes = result.data.map((node): PNodeWithCredits => {
         const storageUsedInBytes = (node.storageUsed || 0) * 1024 * 1024;
-        
         const normalizedNodeId = node.id.trim().toLowerCase();
         const foundCredits = creditsMap.get(normalizedNodeId) ?? 0;
         
         return {
             ...node,
-            storageUsed: storageUsedInBytes, // Now in bytes
+            storageUsed: storageUsedInBytes,
             credits: foundCredits,
         };
     });
+
+    // Deduplicate nodes based on their ID
+    const uniqueNodes = [
+        ...new Map(mappedNodes.map(node => [node.id, node])).values()
+    ];
+
+    return uniqueNodes;
   }, [result, creditsData]);
 
   const filteredPnodes = useMemo(() => {
@@ -191,60 +196,87 @@ export default function PNodesPage() {
 
   const sortedPnodes = useMemo(() => {
     let nodes = [...filteredPnodes];
-    
-    // NO SORT ACTIVE - Default sort (Reset State)
-    if (!ENABLE_SORT || !sortConfig.field || !sortConfig.direction) {
-        return nodes.sort((a, b) => {
-            // Active status first
-            if (a.status === 'active' && b.status !== 'active') return -1;
-            if (a.status !== 'active' && b.status === 'active') return 1;
-            // Then alphabetically
-            return a.name.localeCompare(b.name);
-        });
+    const { field, direction } = sortConfig;
+
+    // If no sort is applied, return default sort
+    if (!field || !direction) {
+      return nodes.sort((a, b) => {
+        // Active nodes first
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        // Then alphabetical by name
+        return a.name.localeCompare(b.name);
+      });
     }
-    
-    // COLUMN SORT ACTIVE
-    nodes.sort((a, b) => {
-        let valA: any;
-        let valB: any;
+
+    // Define which fields should be treated as numbers
+    const numericFields = new Set([
+      'credits',
+      'uptime', 
+      'latency',
+      'xdnScore',
+      'storageUsed',
+      'storageCapacity',
+      'performance',
+      'rewards',
+      'validations',
+      'stake',
+      'riskScore',
+      'cpuPercent',
+      'memoryUsed',
+      'packetsIn',
+      'packetsOut'
+    ]);
+
+    // Define which fields should be treated as dates
+    const dateFields = new Set(['lastSeen']);
+
+    // Separate active and inactive nodes
+    const activeNodes = nodes.filter(n => n.status === 'active');
+    const inactiveNodes = nodes.filter(n => n.status !== 'active');
+
+    // Sort function to apply to both groups
+    const sortFunction = (a: any, b: any) => {
+      let valA: any = (a as any)[field];
+      let valB: any = (b as any)[field];
+
+      // Handle numeric fields
+      if (numericFields.has(field)) {
+        // Convert to numbers, treating undefined/null/NaN as 0
+        const numA = Number(valA);
+        const numB = Number(valB);
         
-        switch (sortConfig.field) {
-            case 'storage':
-                valA = a.storageUsed ?? 0; // Already in bytes
-                valB = b.storageUsed ?? 0; // Already in bytes
-                break;
-            case 'lastSeen':
-                valA = new Date(a.lastSeen ?? 0).getTime();
-                valB = new Date(b.lastSeen ?? 0).getTime();
-                break;
-            case 'credits':
-            case 'uptime':
-            case 'latency':
-            case 'xdnScore':
-                 valA = (a as any)[sortConfig.field!] ?? 0;
-                 valB = (b as any)[sortConfig.field!] ?? 0;
-                 break;
-            case 'name':
-            case 'location':
-            case 'status':
-                 valA = ((a as any)[sortConfig.field!] ?? '').toLowerCase();
-                 valB = ((b as any)[sortConfig.field!] ?? '').toLowerCase();
-                 break;
-            default:
-                 valA = (a as any)[sortConfig.field!] ?? '';
-                 valB = (b as any)[sortConfig.field!] ?? '';
-        }
+        const finalA = isNaN(numA) ? 0 : numA;
+        const finalB = isNaN(numB) ? 0 : numB;
+        
+        const comparison = finalA - finalB;
+        return direction === 'asc' ? comparison : -comparison;
+      }
 
-        // Compare
-        let comparison = 0;
-        if (valA < valB) comparison = -1;
-        if (valA > valB) comparison = 1;
+      // Handle date fields
+      if (dateFields.has(field)) {
+        const dateA = valA ? new Date(valA).getTime() : 0;
+        const dateB = valB ? new Date(valB).getTime() : 0;
+        
+        const comparison = dateA - dateB;
+        return direction === 'asc' ? comparison : -comparison;
+      }
 
-        // Apply direction
-        return sortConfig.direction === 'asc' ? comparison : -comparison;
-    });
-    return nodes;
-  }, [filteredPnodes, sortConfig, ENABLE_SORT]);
+      // Handle string fields (default case)
+      const strA = (valA?.toString() ?? '').toLowerCase();
+      const strB = (valB?.toString() ?? '').toLowerCase();
+      
+      const comparison = strA.localeCompare(strB);
+      return direction === 'asc' ? comparison : -comparison;
+    };
+
+    // Sort each group independently
+    activeNodes.sort(sortFunction);
+    inactiveNodes.sort(sortFunction);
+
+    // Combine: active nodes first, then inactive nodes
+    return [...activeNodes, ...inactiveNodes];
+  }, [filteredPnodes, sortConfig]);
 
   const paginatedPnodes = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -475,23 +507,23 @@ export default function PNodesPage() {
                             <table className="w-full" role="table">
                                 <thead>
                                     <tr className="border-b border-border" role="row">
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('name')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('name')}>
                                             <div className="flex items-center">Name <SortIcon field="name" /></div>
                                         </th>
                                         <th className="text-left p-3 font-semibold text-foreground">Location</th>
                                         <th className="text-left p-3 font-semibold text-foreground hidden md:table-cell">Status</th>
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('credits')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('credits')}>
                                             <div className="flex items-center">Credits <SortIcon field="credits" /></div>
                                         </th>
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('uptime')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('uptime')}>
                                             <div className="flex items-center">Uptime <SortIcon field="uptime" /></div>
                                         </th>
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('latency')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('latency')}>
                                             <div className="flex items-center">Latency <SortIcon field="latency" /></div>
                                         </th>
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('storage')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('storageUsed')}>
                                             <div className="flex items-center gap-1">
-                                                Storage <SortIcon field="storage" />
+                                                Storage <SortIcon field="storageUsed" />
                                                 <div onClick={e => e.stopPropagation()}>
                                                     <Select onValueChange={(v: 'TB' | 'GB' | 'MB') => setListStorageUnit(v)} defaultValue={listStorageUnit}>
                                                         <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0">
@@ -506,7 +538,7 @@ export default function PNodesPage() {
                                                 </div>
                                             </div>
                                         </th>
-                                        <th className={cn("text-left p-3 font-semibold text-foreground", ENABLE_SORT && "cursor-pointer hover:text-primary")} onClick={() => handleSort('lastSeen')}>
+                                        <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('lastSeen')}>
                                             <div className="flex items-center gap-1">
                                                 Last Seen <SortIcon field="lastSeen" />
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={(e) => { e.stopPropagation(); setTimeFormat(p => p === 'absolute' ? 'relative' : 'absolute') }}>
