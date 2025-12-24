@@ -23,6 +23,7 @@ import { PacketLineChart } from "@/components/analytics/packet-line-chart"
 import { SearchableNodeSelect } from "@/components/SearchableNodeSelect"
 import { CreditsLeaderboardChart } from "@/components/analytics/credits-leaderboard-chart"
 import { CreditsCorrelationPlot } from "@/components/analytics/credits-correlation-plot"
+import { VersionDistributionChart } from "@/components/analytics/version-distribution-chart"
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -231,7 +232,8 @@ export default function AnalyticsPage() {
                     <SelectValue placeholder="Navigate to..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="storage">Storage & Geo</SelectItem>
+                    <SelectItem value="storage">Storage</SelectItem>
+                    <SelectItem value="distribution">Distribution</SelectItem>
                     <SelectItem value="credits">Credits Analysis</SelectItem>
                     <SelectItem value="compare">Node Comparison</SelectItem>
                     <SelectItem value="ins">Network Summary</SelectItem>
@@ -256,13 +258,18 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* Row 2: Credits Analysis */}
-          <div id="credits" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Row 2: Distribution */}
+          <div id="distribution" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <VersionDistributionChart nodes={nodesWithAnalytics} />
             <CreditsLeaderboardChart nodes={nodesWithAnalytics} />
+          </div>
+
+          {/* Row 3: Credits Correlation */}
+          <div id="credits" className="grid grid-cols-1 gap-6">
             <CreditsCorrelationPlot nodes={nodesWithAnalytics} />
           </div>
 
-          {/* Row 3: Comparison */}
+          {/* Row 4: Comparison */}
           <div id="compare">
             <Card className="border-border bg-card">
               <CardHeader>
@@ -360,7 +367,7 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
-          {/* Row 4: INS */}
+          {/* Row 5: INS */}
           <div id="ins">
              <Card className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -408,7 +415,7 @@ export default function AnalyticsPage() {
           </Card>
           </div>
 
-          {/* Row 5: CPU & RAM */}
+          {/* Row 6: CPU & RAM */}
           <div id="cpu" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <CpuAreaChart 
                 data={cpuData}
@@ -420,7 +427,7 @@ export default function AnalyticsPage() {
              />
           </div>
 
-          {/* Row 6: Packets */}
+          {/* Row 7: Packets */}
           <div id="packets">
               <PacketLineChart 
                 data={packetData}
