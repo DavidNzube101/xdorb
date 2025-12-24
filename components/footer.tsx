@@ -6,7 +6,7 @@ export function FooterContent() {
   return (
     <div className="flex flex-col md:flex-row items-center justify-between text-sm text-muted-foreground gap-4">
       <div className="flex items-center gap-4">
-        <span>© 2025 Xandeum Analytics</span>
+        <span>© 2025 XDOrb</span>
         <a
           href="https://docs.xandeum.network"
           target="_blank"

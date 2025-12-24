@@ -130,8 +130,8 @@ export default function DashboardPage() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard icon={Activity} label="Total Nodes" value={stats.totalNodes} change={5.2} />
-            <StatCard icon={Zap} label="Active Nodes" value={stats.activeNodes} change={2.1} />
+            <StatCard icon={Activity} label="Total Nodes" value={stats.totalNodes} />
+            <StatCard icon={Zap} label="Active Nodes" value={stats.activeNodes} />
             <StatCard icon={TrendingUp} label="Network Health" value={stats.networkHealth} unit="%" extra={`Fetched ${stats.totalNodes} nodes in ${stats.fetchTime?.toFixed(1) || '0.0'}s`} />
           </div>
         ) : null}
