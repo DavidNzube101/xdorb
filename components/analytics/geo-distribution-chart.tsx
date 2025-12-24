@@ -41,9 +41,32 @@ interface GeoDistributionChartProps {
     onFullScreen?: () => void;
 }
 
+const formatUptime = (seconds: number) => {
+  if (!seconds || seconds < 0) return "0s"
+  if (seconds < 60) return `${seconds.toFixed(0)}s`
+  const d = Math.floor(seconds / (3600 * 24))
+  const h = Math.floor((seconds % (3600 * 24)) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const parts = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m}m`)
+  return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
+}
+
 export function GeoDistributionChart({ data, onFullScreen }: GeoDistributionChartProps) {
   const id = "pie-interactive"
   const [activeCountry, setActiveCountry] = React.useState("")
+
+  const { totalNodes, globalAvgUptime } = React.useMemo(() => {
+    if (!data || data.length === 0) {
+      return { totalNodes: 0, globalAvgUptime: 0 };
+    }
+    const totalNodes = data.reduce((acc, item) => acc + item.count, 0);
+    const totalUptimeSum = data.reduce((acc, item) => acc + (item.avgUptime * item.count), 0);
+    const globalAvgUptime = totalNodes > 0 ? totalUptimeSum / totalNodes : 0;
+    return { totalNodes, globalAvgUptime };
+  }, [data]);
 
   React.useEffect(() => {
       if (activeCountry === "" && data.length > 0) {
@@ -93,8 +116,12 @@ export function GeoDistributionChart({ data, onFullScreen }: GeoDistributionChar
       <ChartStyle id={id} config={chartConfig} />
       <CardHeader className="flex-row items-start space-y-0 pb-0 justify-between">
         <div className="grid gap-1">
-          <CardTitle>Geographical Distribution Analysis</CardTitle>
-          <CardDescription>{data.length} Unique Countries</CardDescription>
+          <CardTitle>Geographical Distribution</CardTitle>
+          <CardDescription>
+            {activeCountry 
+                ? `${data[activeIndex]?.count} nodes in ${activeCountry}` 
+                : `${data.length} Unique Countries`}
+          </CardDescription>
         </div>
         <div className="flex items-center gap-2">
             <Select value={activeCountry} onValueChange={setActiveCountry}>
@@ -172,7 +199,7 @@ export function GeoDistributionChart({ data, onFullScreen }: GeoDistributionChar
               ))}
               <Label
                 content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox && data[activeIndex]) {
+                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                     return (
                       <text
                         x={viewBox.cx}
@@ -185,7 +212,7 @@ export function GeoDistributionChart({ data, onFullScreen }: GeoDistributionChar
                           y={(viewBox.cy || 0) - 10}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {data[activeIndex].count.toLocaleString()}
+                          {totalNodes.toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
@@ -199,7 +226,7 @@ export function GeoDistributionChart({ data, onFullScreen }: GeoDistributionChar
                           y={(viewBox.cy || 0) + 35}
                           className="fill-muted-foreground text-xs"
                         >
-                          Avg Health: {data[activeIndex].avgUptime.toFixed(1)}%
+                          Avg Uptime: {formatUptime(globalAvgUptime)}
                         </tspan>
                       </text>
                     )
