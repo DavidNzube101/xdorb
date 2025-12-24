@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import useSWR from "swr"
 import { Share2, Download, Brain, HelpCircle, Loader2, ArrowRight, Zap } from "lucide-react"
 import * as htmlToImage from 'html-to-image'
@@ -14,12 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 import { apiClient, PNodeMetrics } from "@/lib/api"
+import { PNodeWithCredits } from "@/app/pnodes/page" // Re-use type
 import { StoragePieChart } from "@/components/analytics/storage-pie-chart"
 import { GeoDistributionChart } from "@/components/analytics/geo-distribution-chart"
 import { CpuAreaChart } from "@/components/analytics/cpu-area-chart"
 import { RamStackedAreaChart } from "@/components/analytics/ram-stacked-area-chart"
 import { PacketLineChart } from "@/components/analytics/packet-line-chart"
 import { SearchableNodeSelect } from "@/components/SearchableNodeSelect"
+import { CreditsLeaderboardChart } from "@/components/analytics/credits-leaderboard-chart"
+import { CreditsCorrelationPlot } from "@/components/analytics/credits-correlation-plot"
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -27,6 +30,13 @@ const fetcher = async (url: string) => {
   if (json.error) throw new Error(json.error)
   return json.data
 }
+
+const creditsFetcher = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch credits');
+    const data = await response.json();
+    return data.pods_credits as { pod_id: string; credits: number }[];
+};
 
 const aiSummaryFetcher = async () => {
   const res = await apiClient.getIntelligentNetworkSummary()
@@ -48,6 +58,7 @@ export default function AnalyticsPage() {
   })
   
   const { data: allNodes, isLoading: isLoadingAllNodes } = useSWR('/api/pnodes/all', allNodesFetcher)
+  const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
 
   // State management
   const [aiSummary, setAiSummary] = useState<{ summary: string } | null>(null)
@@ -69,6 +80,20 @@ export default function AnalyticsPage() {
   const [modalTitle, setModalTitle] = useState("")
 
   const summaryRef = useRef<HTMLDivElement>(null)
+
+  const nodesWithAnalytics = useMemo((): PNodeWithCredits[] => {
+    if (!allNodes) return [];
+    const creditsMap = new Map<string, number>();
+    if (creditsData) {
+        creditsData.forEach(item => {
+            creditsMap.set(item.pod_id.trim().toLowerCase(), item.credits);
+        });
+    }
+    return allNodes.map(node => ({
+        ...node,
+        credits: creditsMap.get(node.id.trim().toLowerCase()) ?? 0,
+    }));
+  }, [allNodes, creditsData]);
 
   useEffect(() => {
     setIsMounted(true)
@@ -207,6 +232,8 @@ export default function AnalyticsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="storage">Storage & Geo</SelectItem>
+                    <SelectItem value="credits">Credits Analysis</SelectItem>
+                    <SelectItem value="compare">Node Comparison</SelectItem>
                     <SelectItem value="ins">Network Summary</SelectItem>
                     <SelectItem value="cpu">CPU & RAM</SelectItem>
                     <SelectItem value="packets">Packet Streams</SelectItem>
@@ -229,7 +256,13 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* Row 1.5: Comparison */}
+          {/* Row 2: Credits Analysis */}
+          <div id="credits" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CreditsLeaderboardChart nodes={nodesWithAnalytics} />
+            <CreditsCorrelationPlot nodes={nodesWithAnalytics} />
+          </div>
+
+          {/* Row 3: Comparison */}
           <div id="compare">
             <Card className="border-border bg-card">
               <CardHeader>
@@ -327,7 +360,7 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
-          {/* Row 2: INS */}
+          {/* Row 4: INS */}
           <div id="ins">
              <Card className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -375,7 +408,7 @@ export default function AnalyticsPage() {
           </Card>
           </div>
 
-          {/* Row 3: CPU & RAM */}
+          {/* Row 5: CPU & RAM */}
           <div id="cpu" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <CpuAreaChart 
                 data={cpuData}
@@ -387,7 +420,7 @@ export default function AnalyticsPage() {
              />
           </div>
 
-          {/* Row 4: Packets */}
+          {/* Row 6: Packets */}
           <div id="packets">
               <PacketLineChart 
                 data={packetData}
