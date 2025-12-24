@@ -2,7 +2,7 @@
 
 import { PriceMarquee } from "@/components/price-marquee"
 import { BuyXandButton } from "@/components/buy-xand-button"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import useSWR from "swr"
 import { useParams } from "next/navigation"
 import dynamic from "next/dynamic"
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink } from "lucide-react"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -26,6 +26,13 @@ const MapComponent = dynamic(() => import("@/components/map-component"), {
   ssr: false,
   loading: () => <div className="h-96 w-full bg-muted rounded-lg animate-pulse" />
 })
+
+const creditsFetcher = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch credits');
+    const data = await response.json();
+    return data.pods_credits as { pod_id: string; credits: number }[];
+};
 
 const formatUptime = (seconds: number) => {
   if (!seconds) return "0s"
@@ -222,6 +229,14 @@ export default function PNodeDetailPage() {
   const [showSimulated, setShowSimulated] = useState(false)
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null)
   const [rank, setRank] = useState<number | null>(null)
+
+  const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
+
+  const nodeCredits = useMemo(() => {
+    if (!creditsData || !id) return 0;
+    const creditInfo = creditsData.find(c => c.pod_id === id);
+    return creditInfo?.credits ?? 0;
+  }, [creditsData, id]);
 
   useEffect(() => {
     const fetchRank = async () => {
@@ -848,6 +863,14 @@ export default function PNodeDetailPage() {
                            <div>
                              <p className="text-sm text-muted-foreground mb-1">Rank</p>
                              <p className="text-foreground font-bold text-lg">{rank ? `#${rank}` : '-'}</p>
+                           </div>
+
+                           <div>
+                             <p className="text-sm text-muted-foreground mb-1">Credits</p>
+                             <div className="flex items-center gap-1 text-foreground font-bold text-lg">
+                                <Star className="w-4 h-4 text-yellow-400" />
+                                {nodeCredits.toLocaleString()}
+                             </div>
                            </div>
 
                            <div>

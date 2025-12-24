@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/tooltip"
 
 interface LeaderboardBentoProps {
-  nodes: PNodeMetrics[]
+  nodes: PNodeMetrics[];
+  countdown: string;
 }
 
-export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
+export default function LeaderboardBento({ nodes, countdown }: LeaderboardBentoProps) {
   const router = useRouter()
   const top3 = nodes.slice(0, 3)
   const mover = nodes[3] // Mock "Mover" as the 4th node for now
@@ -139,8 +140,8 @@ export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
                     <NodeAvatar id={mover.id} name={mover.name} size="sm" />
                     <div>
                         <p className="font-bold truncate max-w-[120px]">{mover.name}</p>
-                        <p className="text-xs text-green-500 flex items-center gap-1">
-                            +12 Positions <span className="text-[10px] text-muted-foreground">(7d)</span>
+                        <p className="text-xs text-muted-foreground">
+                            {mover.xdnScore.toFixed(0)} XDN Score
                         </p>
                     </div>
                 </div>
@@ -160,7 +161,7 @@ export default function LeaderboardBento({ nodes }: LeaderboardBentoProps) {
           <h4 className="font-semibold text-sm">Season 1</h4>
         </div>
         <div>
-            <p className="text-2xl font-bold font-mono">14d 08h</p>
+            <p className="text-2xl font-bold font-mono">{countdown}</p>
             <p className="text-xs text-muted-foreground">Remaining until snapshots reset</p>
         </div>
         <div className="w-full bg-muted/50 h-1.5 rounded-full mt-3 overflow-hidden">

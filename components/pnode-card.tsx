@@ -8,9 +8,13 @@ import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Star } from "lucide-react"
+
+// The parent page now provides the node with credits
+type PNodeWithCredits = PNodeMetrics & { credits?: number };
 
 interface PNodeCardProps {
-  node: PNodeMetrics
+  node: PNodeWithCredits
 }
 
 const statusBadgeVariant = (status: string) => {
@@ -27,7 +31,7 @@ const statusBadgeVariant = (status: string) => {
 }
 
 const convertBytes = (bytes: number, unit: 'TB' | 'GB' | 'MB') => {
-    if (bytes === 0) return '0.00';
+    if (!bytes || bytes === 0) return '0.00';
     const k = 1024;
     const units = {
       'MB': k * k,
@@ -57,7 +61,7 @@ const formatUptime = (seconds: number) => {
 }
 
 export function PNodeCard({ node }: PNodeCardProps) {
-  const [storageUnit, setStorageUnit] = useState<'TB' | 'GB' | 'MB'>('TB');
+  const [storageUnit, setStorageUnit] = useState<'TB' | 'GB' | 'MB'>('GB');
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null);
 
   const fetchRegistrationInfo = async () => {
@@ -104,14 +108,6 @@ export function PNodeCard({ node }: PNodeCardProps) {
           <div>
             <p className="text-muted-foreground">CPU</p>
             <p className="font-semibold">{node.cpuPercent?.toFixed(1) ?? '-'}%</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Memory</p>
-            <p className="font-semibold">
-              {node.memoryUsed && node.memoryTotal ? 
-                `${(100 * node.memoryUsed / node.memoryTotal).toFixed(0)}%` 
-                : '-'}
-            </p>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <p className="text-muted-foreground">Storage</p>
