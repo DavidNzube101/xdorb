@@ -76,6 +76,19 @@ const formatUptime = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
 }
 
+const getNetworkType = (version?: string): 'Mainnet' | 'Devnet' | 'Unknown' => {
+    if (!version) return 'Unknown';
+    const cleanVer = version.replace(/^v/, '');
+    const parts = cleanVer.split('.').map(Number);
+    
+    if (parts.length === 0 || isNaN(parts[0])) return 'Unknown';
+    
+    if (parts[0] >= 1) return 'Mainnet';
+    if (parts[0] === 0) return 'Devnet'; // Assuming all 0.x are Devnet/Testnet
+    
+    return 'Unknown';
+};
+
 export default function PNodesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
@@ -547,12 +560,9 @@ export default function PNodesPage() {
                                                                     </DialogContent>
                                                                 </Dialog>
                                                             )}
-                                                            {node.isPrivate && (
-                                                                <Badge variant="outline" className="cursor-pointer text-[10px] px-1 h-5">
-                                                                    <Lock className="w-3 h-3 mr-1" />
-                                                                    Private
-                                                                </Badge>
-                                                            )}
+                                                            <Badge variant="outline" className={cn("text-[10px] px-1 h-5", getNetworkType(node.version) === 'Mainnet' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20")}>
+                                                                {getNetworkType(node.version)}
+                                                            </Badge>
                                                             <Badge className={cn(statusBadgeVariant(node.status), "md:hidden")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
                                                         </div>
                                                         <Badge variant="secondary" className="w-fit text-[10px] px-1 h-5 mt-1 font-mono">XDN: {node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}</Badge>
