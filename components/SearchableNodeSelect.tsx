@@ -18,10 +18,17 @@ export function SearchableNodeSelect({
   placeholder = "Select a node...",
 }: SearchableNodeSelectProps) {
   const options = React.useMemo(() => {
-    return nodes.map(node => ({
-      value: node.id,
-      label: node.name,
-    }))
+    // Deduplicate nodes by ID to prevent duplicate key errors
+    const uniqueMap = new Map<string, { value: string; label: string }>();
+    nodes.forEach(node => {
+      if (!uniqueMap.has(node.id)) {
+        uniqueMap.set(node.id, {
+          value: node.id,
+          label: node.name,
+        });
+      }
+    });
+    return Array.from(uniqueMap.values());
   }, [nodes])
 
   const handleSelect = (value: string) => {

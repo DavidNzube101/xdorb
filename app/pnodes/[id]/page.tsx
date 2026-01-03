@@ -899,6 +899,24 @@ export default function PNodeDetailPage() {
                              </div>
                            </div>
 
+                           {node.manager && (
+                             <div>
+                               <p className="text-sm text-muted-foreground mb-1">Operator / Manager</p>
+                               <div className="flex items-center gap-2">
+                                 <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all truncate">
+                                   {node.manager}
+                                 </code>
+                                 <button
+                                   onClick={() => copyToClipboard(node.manager || "")}
+                                   className="p-2 hover:bg-muted rounded transition-colors"
+                                   title="Copy Manager ID"
+                                 >
+                                   <Copy className="w-4 h-4" />
+                                 </button>
+                               </div>
+                             </div>
+                           )}
+
                            <div>
                              <p className="text-sm text-muted-foreground mb-1">Rank</p>
                              <p className="text-foreground font-bold text-lg">{rank ? `#${rank}` : '-'}</p>

@@ -5,8 +5,9 @@ import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { apiClient, PNodeMetrics } from "@/lib/api"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Trophy, Award, Info, RefreshCw, Star } from "lucide-react"
 import { NodeAvatar } from "@/components/node-avatar"
@@ -39,6 +40,8 @@ export default function LeaderboardPage() {
   const router = useRouter()
   const [refreshTimeLeft, setRefreshTimeLeft] = useState(30)
   const [countdown, setCountdown] = useState("")
+  const [showFullCredits, setShowFullCredits] = useState(false)
+  const [showFullGlobal, setShowFullGlobal] = useState(false)
 
   const { data: topNodes, isLoading, mutate } = useSWR("/leaderboard", fetcher, {
     refreshInterval: 30000,
@@ -61,11 +64,15 @@ export default function LeaderboardPage() {
     }));
   }, [topNodes, creditsData]);
 
-  const creditsLeaderboard = useMemo(() => {
+  const allCreditsLeaderboard = useMemo(() => {
       return [...topNodesWithCredits]
         .sort((a, b) => (b.credits ?? 0) - (a.credits ?? 0))
-        .slice(0, 10);
+        .slice(0, 20);
   }, [topNodesWithCredits]);
+
+  const creditsLeaderboard = useMemo(() => {
+      return showFullCredits ? allCreditsLeaderboard : allCreditsLeaderboard.slice(0, 10);
+  }, [allCreditsLeaderboard, showFullCredits]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -140,7 +147,7 @@ export default function LeaderboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Global Rankings List */}
-            <Card className="border-border bg-card overflow-hidden">
+            <Card className="border-border bg-card overflow-hidden flex flex-col">
                   <CardHeader>
                   <div className="flex items-center gap-2">
                       <CardTitle>Global Rankings (XDN)</CardTitle>
@@ -163,7 +170,7 @@ export default function LeaderboardPage() {
                   </div>
                   <CardDescription>Top 20 nodes by real-time performance</CardDescription>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 flex-1">
                   {isLoading && !topNodesWithCredits ? (
                       <div className="space-y-3 p-6">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -172,7 +179,7 @@ export default function LeaderboardPage() {
                       </div>
                   ) : (
                       <div className="divide-y divide-border">
-                      {topNodesWithCredits?.map((node, index) => (
+                      {(showFullGlobal ? topNodesWithCredits : topNodesWithCredits.slice(0, 10))?.map((node, index) => (
                           <div
                           key={node.id}
                           className={`flex items-center gap-3 p-4 transition-colors hover:bg-muted/50 cursor-pointer ${
@@ -204,15 +211,30 @@ export default function LeaderboardPage() {
                       </div>
                   )}
                   </CardContent>
+                  <CardFooter className="border-t border-border p-2">
+                    <Button 
+                        variant="ghost" 
+                        className="w-full text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowFullGlobal(!showFullGlobal)}
+                    >
+                        {showFullGlobal ? "Show Less" : "Show More"}
+                    </Button>
+                </CardFooter>
               </Card>
 
               {/* Credits Leaderboard List */}
-            <Card className="border-border bg-card overflow-hidden">
+            <Card className="border-border bg-card overflow-hidden flex flex-col">
                 <CardHeader>
-                    <CardTitle>Credits Leaderboard</CardTitle>
-                    <CardDescription>Top 10 nodes ranked by credits earned</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Credits Leaderboard</CardTitle>
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 animate-pulse flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            Live
+                        </Badge>
+                    </div>
+                    <CardDescription>Top 20 nodes ranked by credits earned</CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 flex-1">
                 {isLoading && !creditsLeaderboard ? (
                     <div className="space-y-3 p-6">
                     {[1, 2, 3, 4, 5].map((i) => (
@@ -251,6 +273,15 @@ export default function LeaderboardPage() {
                     </div>
                 )}
                 </CardContent>
+                <CardFooter className="border-t border-border p-2">
+                    <Button 
+                        variant="ghost" 
+                        className="w-full text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowFullCredits(!showFullCredits)}
+                    >
+                        {showFullCredits ? "Show Less" : "Show More"}
+                    </Button>
+                </CardFooter>
             </Card>
           </div>
         </div>

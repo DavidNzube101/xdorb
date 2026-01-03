@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Search, Bookmark, RefreshCw, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Clock, Eye, ArrowUpDown, ArrowUp, ArrowDown, Star, Lock } from "lucide-react"
+import { Search, Bookmark, Filter, Skull, LayoutGrid, List, ChevronLeft, ChevronRight, Eye, ArrowUpDown, ArrowUp, ArrowDown, Star, Lock } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EngagingLoader } from "@/components/engaging-loader"
@@ -94,16 +94,58 @@ export default function PNodesPage() {
   const [regionFilter, setRegionFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
   
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [listStorageUnit, setListStorageUnit] = useState<'TB' | 'GB' | 'MB'>('GB');
   const [timeFormat, setTimeFormat] = useState<'absolute' | 'relative'>('relative');
   const [isMobile, setIsMobile] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(35);
   const [sortConfig, setSortConfig] = useState<{ field: string | null; direction: 'asc' | 'desc' | null }>({
     field: null,
     direction: null,
   });
+
+  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher)
+  const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
+  const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
+
+  useEffect(() => {
+    // Determine the WebSocket URL (handle both localhost and production)
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000/ws';
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.type === 'pnodes_update' && Array.isArray(data.payload)) {
+            // Update the SWR cache while preserving existing metadata
+            mutate((prev: any) => ({
+                ...prev,
+                data: data.payload,
+                timestamp: Date.now()
+            }), false);
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [mutate]);
 
   const handleSort = (field: string) => {
     setSortConfig(currentSort => {
@@ -127,13 +169,6 @@ export default function PNodesPage() {
   }
 
   useEffect(() => {
-    const timer = setInterval(() => {
-        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -154,13 +189,6 @@ export default function PNodesPage() {
       localStorage.setItem('pnode-view', view);
     }
   }, [view, isMobile]);
-
-  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher, { 
-    refreshInterval: 35000,
-    onSuccess: () => setTimeLeft(35)
-  })
-  const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
-  const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
 
   const nodesWithData = useMemo(() => {
     if (!result?.data || !Array.isArray(result.data)) return [];
@@ -313,7 +341,7 @@ export default function PNodesPage() {
   }
 
   const regions = useMemo(() => {
-    if (!result?.data) return []
+    if (!result?.data || !Array.isArray(result.data)) return []
     return Array.from(new Set(result.data.map(node => node.region))).filter(Boolean)
   }, [result])
 
@@ -372,6 +400,9 @@ export default function PNodesPage() {
                 </Button>
 
                 <div className="flex gap-2 flex-wrap w-full md:w-auto">
+                    <Button onClick={() => setNetwork(network === 'devnet' ? 'mainnet' : 'devnet')} variant="outline">
+                        {network === 'devnet' ? 'Devnet' : 'Mainnet'}
+                    </Button>
                     <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
                         <DialogTrigger asChild>
                         <Button variant="outline" className="flex items-center gap-2">
@@ -450,7 +481,6 @@ export default function PNodesPage() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>{statsResult?.data?.activeNodes ?? '-'}/{statsResult?.data?.totalNodes ?? '-'} Active</CardTitle>
                             <CardDescription>
                                 Fetched {filteredPnodes.length} nodes in {statsResult?.data?.fetchTime.toFixed(2) ?? '-'}s
                             </CardDescription>
@@ -464,12 +494,6 @@ export default function PNodesPage() {
                                     <LayoutGrid className="w-4 h-4" />
                                 </Button>
                             </div>
-                            <Button variant="outline" size="sm" onClick={handleReload} disabled={reloading} className="gap-2">
-                                <RefreshCw className={`w-4 h-4 ${reloading || isLoading ? 'animate-spin' : ''}`} />
-                                <span className="hidden sm:inline">
-                                {reloading ? 'Reloading...' : `Refresh in ${timeLeft}s`}
-                                </span>
-                            </Button>
                             <Button variant="outline" size="sm" onClick={() => {
                                 setStatusFilter("all"); setRegionFilter("all");
                                 setSortConfig({ field: null, direction: null });

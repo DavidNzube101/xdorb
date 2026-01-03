@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans as V0_Font_Plus_Jakarta_Sans, IBM_Plex_Mono as V0_Fon
 import { ThemeProvider } from '@/components/theme-provider'
 import { WalletContextProvider } from '@/context/wallet-provider'
 import { TutorialCarousel } from '@/components/tutorial-carousel'
+import { WhatsNewModal } from '@/components/whats-new-modal'
 import { Toaster } from "@/components/ui/sonner"
 import './globals.css'
 
@@ -69,6 +70,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <TutorialCarousel />
+            <WhatsNewModal />
           </ThemeProvider>
         </WalletContextProvider>
       </body>

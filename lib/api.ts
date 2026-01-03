@@ -21,6 +21,7 @@ export interface PNodeMetrics {
   riskScore: number
   xdnScore: number
   registered?: boolean
+  manager?: string
   version?: string
   cpuPercent?: number
   memoryUsed?: number
@@ -92,9 +93,9 @@ async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise
       timestamp: Date.now(),
     }
   } catch (error) {
-    console.error(`[v0] API fetch error on ${endpoint}:`, error)
+    console.error(`API fetch error on ${endpoint}:`, error)
     return {
-      data: {} as T,
+      data: (endpoint.includes('all') || endpoint.includes('pnodes') || endpoint.includes('operators') || endpoint.includes('history') || endpoint.includes('peers') || endpoint.includes('alerts') || endpoint.includes('leaderboard') ? [] : {}) as T,
       pagination: undefined,
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: Date.now(),
@@ -167,18 +168,24 @@ export const apiClient = {
       `/network/history?range=${timeRange}`,
     ),
 
+  getRegionSummary: (region: string) => fetchFromApi<{ summary: string }>(`/network/region/${encodeURIComponent(region)}/summary`),
+
   getJupiterQuote: (queryString: string) =>
     fetchFromApi<any>(`/jupiter/quote?${queryString}`),
 
   getHistoricalPNodes: () => fetchFromApi<PNodeMetrics[]>("/pnodes/historical"),
 
+  getWhatsNew: () => fetchFromApi<{ id: string; version: string; updates: Array<{ title: string; description: string; icon: string }> }>("/whats-new"),
+
   getIntelligentNetworkSummary: () => fetchFromApi<{ summary: string }>("/ai/network-summary"),
 
-  compareNodes: (node1: PNodeMetrics, node2: PNodeMetrics) =>
+  compareNodes: (nodes: PNodeMetrics[]) =>
     fetchFromApi<{ comparison: string }>("/ai/compare-nodes", {
       method: "POST",
-      body: JSON.stringify({ node1, node2 }),
+      body: JSON.stringify({ nodes }),
     }),
+
+  getOperators: () => fetchFromApi<Array<{ manager: string; owned: number; registered: number; pnodes: string[] }>>("/operators"),
 
   // Clear cache manually if needed (No-op now)
   clearCache: () => {},

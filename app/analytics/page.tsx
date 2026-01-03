@@ -2,12 +2,17 @@
 
 import { useEffect, useState, useRef, useMemo } from "react"
 import useSWR from "swr"
-import { Share2, Download, Brain, HelpCircle, Loader2, ArrowRight, Zap } from "lucide-react"
+import { Share2, Download, Brain, HelpCircle, Loader2, ArrowRight, Zap, Calculator, Sparkles } from "lucide-react"
 import * as htmlToImage from 'html-to-image'
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
+import { NotificationManager } from "@/components/notification-manager"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 import { Typewriter } from "@/components/typewriter"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -24,6 +29,7 @@ import { SearchableNodeSelect } from "@/components/SearchableNodeSelect"
 import { CreditsLeaderboardChart } from "@/components/analytics/credits-leaderboard-chart"
 import { CreditsCorrelationPlot } from "@/components/analytics/credits-correlation-plot"
 import { VersionDistributionChart } from "@/components/analytics/version-distribution-chart"
+import { STOINCCalculator } from "@/components/analytics/stoinc-calculator"
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -68,9 +74,7 @@ export default function AnalyticsPage() {
   const [isMounted, setIsMounted] = useState(false)
   
   // Comparison State
-  const [node1, setNode1] = useState<PNodeMetrics | undefined>(undefined)
-  const [node2, setNode2] = useState<PNodeMetrics | undefined>(undefined)
-  const [step, setStep] = useState(0)
+  const [selectedNodes, setSelectedNodes] = useState<PNodeMetrics[]>([])
   const [compareModalOpen, setCompareModalOpen] = useState(false)
   const [intelligentComparison, setIntelligentComparison] = useState("")
   const [isComparing, setIsComparing] = useState(false)
@@ -79,6 +83,7 @@ export default function AnalyticsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalContent, setModalContent] = useState<React.ReactNode>(null)
   const [modalTitle, setModalTitle] = useState("")
+  const [stoincCalcOpen, setStoincCalcOpen] = useState(false)
 
   const summaryRef = useRef<HTMLDivElement>(null)
 
@@ -147,22 +152,22 @@ export default function AnalyticsPage() {
   }
 
   // Comparison Logic
-  const handleSelectNode = (node: PNodeMetrics | undefined, position: number) => {
+  const handleAddNode = (node: PNodeMetrics | undefined) => {
     if (!node) return
-    if (position === 1) {
-      setNode1(node)
-      setStep(1)
-    } else {
-      setNode2(node)
-      setStep(2)
-    }
+    if (selectedNodes.length >= 10) return
+    if (selectedNodes.some(n => n.id === node.id)) return
+    setSelectedNodes(prev => [...prev, node])
+  }
+
+  const handleRemoveNode = (id: string) => {
+    setSelectedNodes(prev => prev.filter(n => n.id !== id))
   }
 
   const handleIntelligentCompare = async () => {
-    if (!node1 || !node2) return
+    if (selectedNodes.length < 2) return
     setIsComparing(true)
     try {
-        const res = await apiClient.compareNodes(node1, node2)
+        const res = await apiClient.compareNodes(selectedNodes)
         if (res.data?.comparison) {
             setIntelligentComparison(res.data.comparison)
         }
@@ -180,14 +185,13 @@ export default function AnalyticsPage() {
     { metric: 'Packets Out', key: 'packetsOut' as keyof PNodeMetrics, unit: '' },
   ]
 
-  const getWinner = (key: keyof PNodeMetrics) => {
-    if (!node1 || !node2) return null
-    const val1 = node1[key] as number
-    const val2 = node2[key] as number
+  const getBestValue = (key: keyof PNodeMetrics) => {
+    if (selectedNodes.length < 2) return null
+    const values = selectedNodes.map(n => n[key] as number)
     if (key === 'latency') {
-      return val1 < val2 ? 'node1' : val2 < val1 ? 'node2' : null
+      return Math.min(...values)
     }
-    return val1 > val2 ? 'node1' : val2 > val1 ? 'node2' : null
+    return Math.max(...values)
   }
 
   // Scroll to section for mobile
@@ -233,6 +237,7 @@ export default function AnalyticsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="storage">Storage</SelectItem>
+                    <SelectItem value="stoinc">STOINC</SelectItem>
                     <SelectItem value="distribution">Distribution</SelectItem>
                     <SelectItem value="credits">Credits Analysis</SelectItem>
                     <SelectItem value="compare">Node Comparison</SelectItem>
@@ -245,7 +250,53 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Row 1: Storage & Geo */}
+          {/* Row 1: STOINC Information */}
+          <div id="stoinc">
+            <Card className="border-border bg-card overflow-hidden relative rounded-none">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Zap size={120} />
+              </div>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  Unlocking STOINC
+                </CardTitle>
+                <CardDescription>The incentive heart of Xandeum storage</CardDescription>
+              </CardHeader>
+              <CardContent className="prose dark:prose-invert max-w-none pb-12">
+                <p className="text-foreground leading-relaxed">
+                  Storage Income (STOINC) is the primary economic driver for the Xandeum network, built to incentivize pNode operators who provide the backbone of our scalable storage layer.
+                </p>
+                <h4 className="text-lg font-semibold mt-4 mb-2">How STOINC Works:</h4>
+                <p className="text-muted-foreground">
+                  Operators earn credits by successfully handling data traffic and ensuring maximum availability. These credits directly translate into a share of the network's generated storage fees.
+                </p>
+                <p className="text-muted-foreground mt-4 italic text-sm">
+                  This interface provides a real-time window into the activity and reward distribution across the global pNode network.
+                </p>
+                
+                <div className="absolute bottom-4 left-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="rounded-none border-primary/20 hover:border-primary/50 text-primary"
+                        onClick={() => setStoincCalcOpen(true)}
+                      >
+                        <Calculator className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Open STOINC Calculator</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </CardContent>
+            </Card>
+            <STOINCCalculator isOpen={stoincCalcOpen} onClose={() => setStoincCalcOpen(false)} />
+          </div>
+
+          {/* Row 2: Storage & Geo */}
           <div id="storage" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <StoragePieChart 
                 totalCapacity={storageData.totalCapacity} 
@@ -271,79 +322,74 @@ export default function AnalyticsPage() {
 
           {/* Row 4: Comparison */}
           <div id="compare">
-            <Card className="border-border bg-card">
+            <Card className="border-border bg-card rounded-none">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <CardTitle>Performance Comparison</CardTitle>
+                  <CardTitle>Fleet Comparison</CardTitle>
                   <Tooltip>
                     <TooltipTrigger>
                       <HelpCircle className="w-4 h-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Select any two nodes to compare their key performance metrics side-by-side.</p>
+                      <p>Add up to 10 nodes to compare performance across your fleet.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <CardDescription>Select two nodes to compare their performance</CardDescription>
+                <CardDescription>Select nodes to compare performance metrics side-by-side</CardDescription>
               </CardHeader>
-              <CardContent className="relative min-h-[300px] flex flex-col items-center justify-center">
-                <div className="flex flex-col md:flex-row items-center justify-around w-full max-w-4xl gap-4 md:gap-0">
-                  <div className="flex flex-col items-center gap-4 w-full md:w-1/3">
-                    <h3 className="font-semibold">Node One</h3>
-                      <SearchableNodeSelect
-                        nodes={allNodes || []}
-                        selectedNode={node1}
-                        onSelect={(node) => handleSelectNode(node, 1)}
-                        placeholder="Select Node 1"
-                      />
+              <CardContent className="space-y-6">
+                <div className="flex flex-col md:flex-row gap-4 items-end">
+                  <div className="flex-1 w-full">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-2 block">Add Node to Comparison</Label>
+                    <SearchableNodeSelect
+                      nodes={allNodes || []}
+                      selectedNode={undefined}
+                      onSelect={handleAddNode}
+                      placeholder="Search and add node..."
+                    />
                   </div>
-
-                  <ArrowRight className={`w-8 h-8 transition-opacity rotate-90 md:rotate-0 ${step >= 1 ? 'opacity-100' : 'opacity-20'}`} />
-
-                  <div className="flex flex-col items-center gap-4 w-full md:w-1/3">
-                    <h3 className="font-semibold">Node Two</h3>
-                      <SearchableNodeSelect
-                        nodes={allNodes || []}
-                        selectedNode={node2}
-                        onSelect={(node) => handleSelectNode(node, 2)}
-                        placeholder="Select Node 2"
-                      />
-                  </div>
-                </div>
-
-                {step === 2 && node1 && node2 && (
-                  <div className="mt-8 flex gap-4">
+                  <div className="flex gap-2">
                     <Dialog open={compareModalOpen} onOpenChange={setCompareModalOpen}>
                       <DialogTrigger asChild>
-                        <Button>Compare</Button>
+                        <Button disabled={selectedNodes.length < 2}>Compare Fleet</Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl">
+                      <DialogContent className="max-w-5xl overflow-hidden flex flex-col h-[80vh]">
                         <DialogHeader>
-                          <DialogTitle>Comparison: {node1.name} vs {node2.name}</DialogTitle>
+                          <DialogTitle>Fleet Comparison ({selectedNodes.length} Nodes)</DialogTitle>
                         </DialogHeader>
-                        <div className="mt-4">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left p-2 font-semibold">Metric</th>
-                                <th className="text-center p-2 font-semibold">{node1.name}</th>
-                                <th className="text-center p-2 font-semibold">{node2.name}</th>
+                        <div className="flex-1 overflow-auto mt-4 border border-border">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-background z-10">
+                              <tr className="border-b border-border">
+                                <th className="text-left p-4 font-bold uppercase tracking-wider bg-muted/50 w-32">Metric</th>
+                                {selectedNodes.map(node => (
+                                  <th key={node.id} className="text-center p-4 font-bold border-l border-border min-w-[150px]">
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="truncate w-32">{node.name}</span>
+                                      <span className="text-[10px] font-mono text-muted-foreground">{node.id.slice(0, 8)}...</span>
+                                    </div>
+                                  </th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody>
                               {comparisonData.map(({ metric, key, unit }) => {
-                                const winner = getWinner(key)
-                                const node1Value = node1[key] !== null && node1[key] !== undefined ? `${Number(node1[key]).toFixed(2)}${unit}` : '-'
-                                const node2Value = node2[key] !== null && node2[key] !== undefined ? `${Number(node2[key]).toFixed(2)}${unit}` : '-'
+                                const bestVal = getBestValue(key)
                                 return (
-                                  <tr key={metric} className="border-b">
-                                    <td className="p-2">{metric}</td>
-                                    <td className={`p-2 text-center font-medium ${winner === 'node1' ? 'text-green-500' : winner === 'node2' ? 'text-red-500' : ''}`}>
-                                      {node1Value}
-                                    </td>
-                                    <td className={`p-2 text-center font-medium ${winner === 'node2' ? 'text-green-500' : winner === 'node1' ? 'text-red-500' : ''}`}>
-                                      {node2Value}
-                                    </td>
+                                  <tr key={metric} className="border-b border-border hover:bg-muted/20">
+                                    <td className="p-4 font-medium bg-muted/30">{metric}</td>
+                                    {selectedNodes.map(node => {
+                                      const val = node[key] as number
+                                      const isBest = val === bestVal
+                                      return (
+                                        <td key={node.id} className={cn(
+                                          "p-4 text-center border-l border-border font-mono",
+                                          isBest ? "text-green-500 font-bold bg-green-500/5" : "text-foreground"
+                                        )}>
+                                          {val?.toFixed(2)}{unit}
+                                        </td>
+                                      )
+                                    })}
                                   </tr>
                                 )
                               })}
@@ -352,14 +398,44 @@ export default function AnalyticsPage() {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    <Button variant="outline" onClick={handleIntelligentCompare} disabled={isComparing}>
+                    <Button variant="outline" onClick={handleIntelligentCompare} disabled={isComparing || selectedNodes.length < 2}>
                       <Zap className="w-4 h-4 mr-2" />
-                      {isComparing ? 'Analyzing...' : 'Intelligent Compare'}
+                      AI Compare
                     </Button>
                   </div>
-                )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <AnimatePresence>
+                    {selectedNodes.map(node => (
+                      <motion.div
+                        key={node.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                      >
+                        <Badge variant="secondary" className="pl-2 pr-1 py-1 rounded-none flex items-center gap-2 border border-border">
+                          <span className="truncate max-w-[100px]">{node.name}</span>
+                          <button 
+                            onClick={() => handleRemoveNode(node.id)}
+                            className="hover:bg-muted p-0.5"
+                          >
+                            <ArrowRight className="w-3 h-3 rotate-45" />
+                          </button>
+                        </Badge>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  {selectedNodes.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-2">No nodes selected for comparison.</p>
+                  )}
+                </div>
+
                 {intelligentComparison && (
-                  <div className="mt-6 p-4 bg-muted rounded-lg w-full max-w-4xl">
+                  <div className="mt-6 p-4 bg-muted/30 border border-border rounded-none">
+                    <div className="flex items-center gap-2 mb-2 text-primary font-bold text-xs uppercase tracking-widest">
+                      <Sparkles className="w-3 h-3" /> AI Analysis
+                    </div>
                     <Typewriter text={intelligentComparison} />
                   </div>
                 )}
@@ -369,7 +445,7 @@ export default function AnalyticsPage() {
 
           {/* Row 5: INS */}
           <div id="ins">
-             <Card className="border-border bg-card">
+             <Card className="border-border bg-card rounded-none">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
