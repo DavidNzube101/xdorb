@@ -15,6 +15,8 @@ type PNodeWithData = PNodeMetrics & {
     credits?: number;
     rank?: number;
     isPrivate?: boolean;
+    isDevnet?: boolean;
+    isMainnet?: boolean;
 };
 
 interface PNodeCardProps {
@@ -83,13 +85,13 @@ export function PNodeCard({ node }: PNodeCardProps) {
 
   return (
     <Card 
-      className="border-border bg-card hover:border-primary/50 transition-colors duration-300 cursor-pointer flex flex-col"
+      className="border-border bg-card hover:border-primary/50 transition-colors duration-300 cursor-pointer flex flex-col rounded-none"
       onClick={() => window.location.href = `/pnodes/${node.id}`}
     >
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg truncate">{node.name}</CardTitle>
-          <Badge className={cn("text-xs", statusBadgeVariant(node.status))}>
+          <Badge className={cn("text-xs rounded-none", statusBadgeVariant(node.status))}>
             {node.status.charAt(0).toUpperCase() + node.status.slice(1)}
           </Badge>
         </div>
@@ -112,7 +114,7 @@ export function PNodeCard({ node }: PNodeCardProps) {
           {node.isPrivate ? (
             <div>
                 <p className="text-muted-foreground">Type</p>
-                <Badge variant="outline" className="font-semibold">
+                <Badge variant="outline" className="font-semibold rounded-none">
                     <Lock className="w-3 h-3 mr-1" />
                     Private
                 </Badge>
@@ -130,10 +132,10 @@ export function PNodeCard({ node }: PNodeCardProps) {
                 {convertBytes(node.storageUsed, storageUnit)}
                 </p>
                 <Select onValueChange={(value: 'TB' | 'GB' | 'MB') => setStorageUnit(value)} defaultValue={storageUnit}>
-                    <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0">
+                    <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0 rounded-none">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-none">
                         <SelectItem value="MB">MB</SelectItem>
                         <SelectItem value="GB">GB</SelectItem>
                         <SelectItem value="TB">TB</SelectItem>
@@ -150,11 +152,11 @@ export function PNodeCard({ node }: PNodeCardProps) {
             {node.registered && (
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Badge variant="default" className="text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700 w-fit cursor-pointer" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo() }}>
+                        <Badge variant="default" className="text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700 w-fit cursor-pointer rounded-none" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo() }}>
                             Registered
                         </Badge>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="rounded-none">
                         <DialogHeader>
                             <DialogTitle>Registered Node</DialogTitle>
                             <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
@@ -170,6 +172,16 @@ export function PNodeCard({ node }: PNodeCardProps) {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+            )}
+            {node.isMainnet && (
+                <Badge variant="outline" className="text-[10px] px-1 h-5 bg-purple-500/10 text-purple-500 border-purple-500/20 rounded-none">
+                    Mainnet
+                </Badge>
+            )}
+            {node.isDevnet && (
+                <Badge variant="outline" className="text-[10px] px-1 h-5 bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-none">
+                    Devnet
+                </Badge>
             )}
         </div>
       </CardContent>

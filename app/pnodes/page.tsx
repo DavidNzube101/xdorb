@@ -30,10 +30,14 @@ export type PNodeWithCredits = PNodeMetrics & {
     isPrivate?: boolean;
 };
 
-const fetcher = (url: string) => apiClient.getPNodes({
-    page: 1,
-    limit: 1000,
-});
+const fetcher = (url: string) => {
+    const searchParams = new URLSearchParams(url.split('?')[1]);
+    return apiClient.getPNodes({
+        page: 1,
+        limit: 1000,
+        network: searchParams.get('network') || undefined,
+    });
+};
 
 const creditsFetcher = async (url: string) => {
     const response = await fetch(url);
@@ -76,19 +80,6 @@ const formatUptime = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
 }
 
-const getNetworkType = (version?: string): 'Mainnet' | 'Devnet' | 'Unknown' => {
-    if (!version) return 'Unknown';
-    const cleanVer = version.replace(/^v/, '');
-    const parts = cleanVer.split('.').map(Number);
-    
-    if (parts.length === 0 || isNaN(parts[0])) return 'Unknown';
-    
-    if (parts[0] >= 1) return 'Mainnet';
-    if (parts[0] === 0) return 'Devnet'; // Assuming all 0.x are Devnet/Testnet
-    
-    return 'Unknown';
-};
-
 export default function PNodesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "warning">("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
@@ -105,7 +96,7 @@ export default function PNodesPage() {
     direction: null,
   });
 
-  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all`, fetcher)
+  const { data: result, isLoading, mutate } = useSWR(`/pnodes/all?network=${network}`, fetcher)
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
   const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
 
@@ -113,7 +104,13 @@ export default function PNodesPage() {
     // Determine the WebSocket URL (handle both localhost and production with secure protocol)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const defaultWsUrl = `${protocol}//${window.location.hostname === 'localhost' ? 'localhost:9000' : 'xdorb-backend.onrender.com'}/ws`;
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+    let wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+    
+    // Force upgrade to wss if the page is loaded over https
+    if (window.location.protocol === 'https:' && wsUrl.startsWith('ws:')) {
+      wsUrl = wsUrl.replace('ws:', 'wss:');
+    }
+    
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -226,6 +223,8 @@ export default function PNodesPage() {
             credits: creditsMap.get(normalizedNodeId) ?? 0,
             rank: rankMap.get(node.id),
             isPrivate: isPrivate,
+            isDevnet: node.isDevnet,
+            isMainnet: node.isMainnet,
         };
     });
   }, [result, creditsData]);
@@ -402,9 +401,24 @@ export default function PNodesPage() {
                 </Button>
 
                 <div className="flex gap-2 flex-wrap w-full md:w-auto">
-                    <Button onClick={() => setNetwork(network === 'devnet' ? 'mainnet' : 'devnet')} variant="outline">
-                        {network === 'devnet' ? 'Devnet' : 'Mainnet'}
-                    </Button>
+                    <div className="flex items-center rounded-none bg-muted p-1">
+                        <Button 
+                            variant={network === 'devnet' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setNetwork('devnet')}
+                            className={cn("rounded-none text-[10px] uppercase font-bold", network === 'devnet' && "bg-blue-500/10 text-blue-500")}
+                        >
+                            Devnet
+                        </Button>
+                        <Button 
+                            variant={network === 'mainnet' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setNetwork('mainnet')}
+                            className={cn("rounded-none text-[10px] uppercase font-bold", network === 'mainnet' && "bg-purple-500/10 text-purple-500")}
+                        >
+                            Mainnet
+                        </Button>
+                    </div>
                     <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
                         <DialogTrigger asChild>
                         <Button variant="outline" className="flex items-center gap-2">
@@ -567,9 +581,9 @@ export default function PNodesPage() {
                                                             {node.registered && (
                                                                 <Dialog>
                                                                     <DialogTrigger asChild>
-                                                                        <Badge variant="default" className="cursor-pointer text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo(node.id) }}>Registered</Badge>
+                                                                        <Badge variant="default" className="cursor-pointer text-[10px] px-1 h-5 bg-green-600 hover:bg-green-700 rounded-none" onClick={(e) => { e.stopPropagation(); fetchRegistrationInfo(node.id) }}>Registered</Badge>
                                                                     </DialogTrigger>
-                                                                    <DialogContent>
+                                                                    <DialogContent className="rounded-none">
                                                                         <DialogHeader>
                                                                             <DialogTitle>Registered Node</DialogTitle>
                                                                             <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
@@ -586,10 +600,17 @@ export default function PNodesPage() {
                                                                     </DialogContent>
                                                                 </Dialog>
                                                             )}
-                                                            <Badge variant="outline" className={cn("text-[10px] px-1 h-5", getNetworkType(node.version) === 'Mainnet' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20")}>
-                                                                {getNetworkType(node.version)}
-                                                            </Badge>
-                                                            <Badge className={cn(statusBadgeVariant(node.status), "md:hidden")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
+                                                            {node.isMainnet && (
+                                                                <Badge variant="outline" className="text-[10px] px-1 h-5 bg-purple-500/10 text-purple-500 border-purple-500/20 rounded-none">
+                                                                    Mainnet
+                                                                </Badge>
+                                                            )}
+                                                            {node.isDevnet && (
+                                                                <Badge variant="outline" className="text-[10px] px-1 h-5 bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-none">
+                                                                    Devnet
+                                                                </Badge>
+                                                            )}
+                                                            <Badge className={cn(statusBadgeVariant(node.status), "md:hidden rounded-none")}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge>
                                                         </div>
                                                         <Badge variant="secondary" className="w-fit text-[10px] px-1 h-5 mt-1 font-mono">XDN: {node.xdnScore ? node.xdnScore.toFixed(0) : 'N/A'}</Badge>
                                                     </div>

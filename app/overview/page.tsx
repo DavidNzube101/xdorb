@@ -57,7 +57,13 @@ export default function DashboardPage() {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const defaultWsUrl = `${protocol}//${window.location.hostname === 'localhost' ? 'localhost:9000' : 'xdorb-backend.onrender.com'}/ws`;
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+    let wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+
+    // Force upgrade to wss if the page is loaded over https
+    if (window.location.protocol === 'https:' && wsUrl.startsWith('ws:')) {
+      wsUrl = wsUrl.replace('ws:', 'wss:');
+    }
+
     const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {

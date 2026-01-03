@@ -194,7 +194,7 @@ export default function AboutPage() {
               </a>
 
               <a
-                href="https://github.com/DavidNzube101/xandeum-prpc-go"
+                href="https://pkg.go.dev/github.com/DavidNzube101/xandeum-prpc-go"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
@@ -204,7 +204,7 @@ export default function AboutPage() {
                  </div>
                 <div>
                   <div className="font-medium">Go Client</div>
-                  <div className="text-xs text-muted-foreground">GitHub Repository</div>
+                  <div className="text-xs text-muted-foreground">Go Documentation</div>
                 </div>
                 <ExternalLink className="w-4 h-4 ml-auto text-muted-foreground" />
               </a>

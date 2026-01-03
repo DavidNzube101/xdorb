@@ -109,7 +109,7 @@ export const apiClient = {
   getDashboardStats: () => fetchFromApi<DashboardStats>("/dashboard/stats"),
 
   // pNode Management
-  getPNodes: (filters?: { status?: string; location?: string; page?: number; limit?: number }) =>
+  getPNodes: (filters?: { status?: string; location?: string; network?: string; page?: number; limit?: number }) =>
     fetchFromApi<PNodeMetrics[]>(`/pnodes?${new URLSearchParams(filters as any).toString()}`),
 
   refreshData: () => fetchFromApi<PNodeMetrics[]>("/pnodes/refresh", { method: "POST" }),
@@ -145,8 +145,8 @@ export const apiClient = {
     ),
 
   // Leaderboard
-  getLeaderboard: (metric: "rewards" | "uptime" | "performance" | "xdn" = "xdn", limit = 10) => {
-    return fetchFromApi<PNodeMetrics[]>(`/leaderboard?metric=${metric}&limit=${limit}`)
+  getLeaderboard: (metric: "rewards" | "uptime" | "performance" | "xdn" = "xdn", limit = 10, network?: string) => {
+    return fetchFromApi<PNodeMetrics[]>(`/leaderboard?metric=${metric}&limit=${limit}${network ? `&network=${network}` : ''}`)
   },
 
   // Network Heat Map

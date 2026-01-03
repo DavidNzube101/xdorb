@@ -16,8 +16,9 @@ import LeaderboardBento from "@/components/leaderboard-bento"
 // Extends PNodeMetrics to include optional credits
 type PNodeWithCredits = PNodeMetrics & { credits?: number };
 
-const fetcher = async () => {
-  const result = await apiClient.getLeaderboard("xdn", 20)
+const fetcher = async (key: string) => {
+  const network = key.split('?network=')[1]
+  const result = await apiClient.getLeaderboard("xdn", 20, network)
   if (result.error) {
     console.error("Failed to fetch leaderboard:", result.error)
     throw new Error(result.error)
@@ -42,15 +43,16 @@ export default function LeaderboardPage() {
   const [countdown, setCountdown] = useState("")
   const [showFullCredits, setShowFullCredits] = useState(false)
   const [showFullGlobal, setShowFullGlobal] = useState(false)
+  const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet')
 
-  const { data: topNodes, isLoading, mutate } = useSWR("/leaderboard", fetcher, {
+  const { data: topNodes, isLoading, mutate } = useSWR(`/leaderboard?network=${network}`, fetcher, {
     refreshInterval: 30000,
     revalidateOnMount: true,
     dedupingInterval: 5000,
     onSuccess: () => setRefreshTimeLeft(30)
   })
   
-  const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
+  const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
 
   const topNodesWithCredits = useMemo((): PNodeWithCredits[] => {
     if (!topNodes) return [];
@@ -82,7 +84,7 @@ export default function LeaderboardPage() {
   }, [])
 
   useEffect(() => {
-    const targetDate = new Date("2025-12-31T23:59:59").getTime();
+    const targetDate = new Date("2026-01-25T23:59:59").getTime();
 
     const interval = setInterval(() => {
         const now = new Date().getTime();
@@ -128,9 +130,29 @@ export default function LeaderboardPage() {
                 <h1 className="text-3xl font-bold text-foreground">XDOrb Leaderboard</h1>
                 <p className="text-muted-foreground mt-1">Top performing pNodes ranked by XDN Score and Credits</p>
             </div>
-            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-none border border-border text-xs text-muted-foreground">
-                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>Refreshing in {refreshTimeLeft}s</span>
+            <div className="flex items-center gap-4">
+                <div className="flex items-center rounded-none bg-muted p-1">
+                    <Button 
+                        variant={network === 'devnet' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setNetwork('devnet')}
+                        className={cn("rounded-none text-[10px] uppercase font-bold", network === 'devnet' && "bg-blue-500/10 text-blue-500")}
+                    >
+                        Devnet
+                    </Button>
+                    <Button 
+                        variant={network === 'mainnet' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setNetwork('mainnet')}
+                        className={cn("rounded-none text-[10px] uppercase font-bold", network === 'mainnet' && "bg-purple-500/10 text-purple-500")}
+                    >
+                        Mainnet
+                    </Button>
+                </div>
+                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-none border border-border text-xs text-muted-foreground">
+                    <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                    <span>Refreshing in {refreshTimeLeft}s</span>
+                </div>
             </div>
           </div>
 

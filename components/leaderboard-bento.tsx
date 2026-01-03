@@ -158,7 +158,7 @@ export default function LeaderboardBento({ nodes, countdown }: LeaderboardBentoP
         </div>
         <div className="flex items-center gap-2 text-primary mb-2">
           <Clock className="w-4 h-4" />
-          <h4 className="font-semibold text-sm">Season 1</h4>
+          <h4 className="font-semibold text-sm">Season 2</h4>
         </div>
         <div>
             <p className="text-2xl font-bold font-mono">{countdown}</p>
