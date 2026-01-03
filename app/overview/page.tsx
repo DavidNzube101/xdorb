@@ -55,7 +55,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (status?.maintenance) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000/ws';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const defaultWsUrl = `${protocol}//${window.location.hostname === 'localhost' ? 'localhost:9000' : 'xdorb-backend.onrender.com'}/ws`;
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
     const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {

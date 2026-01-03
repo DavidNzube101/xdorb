@@ -110,8 +110,10 @@ export default function PNodesPage() {
   const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
 
   useEffect(() => {
-    // Determine the WebSocket URL (handle both localhost and production)
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9000/ws';
+    // Determine the WebSocket URL (handle both localhost and production with secure protocol)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const defaultWsUrl = `${protocol}//${window.location.hostname === 'localhost' ? 'localhost:9000' : 'xdorb-backend.onrender.com'}/ws`;
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
