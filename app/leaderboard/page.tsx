@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Trophy, Award, Info, RefreshCw, Star } from "lucide-react"
 import { NodeAvatar } from "@/components/node-avatar"
 import LeaderboardBento from "@/components/leaderboard-bento"
+import { cn } from "@/lib/utils"
 
 // Extends PNodeMetrics to include optional credits
 type PNodeWithCredits = PNodeMetrics & { credits?: number };
