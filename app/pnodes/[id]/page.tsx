@@ -30,7 +30,7 @@ const ITEMS_PER_PAGE = 50
 // Dynamically import MapComponent to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("@/components/map-component"), {
   ssr: false,
-  loading: () => <div className="h-96 w-full bg-muted rounded-lg animate-pulse" />
+  loading: () => <div className="h-96 w-full bg-muted animate-pulse rounded-lg" />
 })
 
 const creditsFetcher = async (url: string) => {
@@ -58,19 +58,6 @@ const formatUptime = (seconds: number) => {
   
   return parts.length > 0 ? parts.join(" ") : `${seconds.toFixed(0)}s`
 }
-
-const getNetworkType = (version?: string): 'Mainnet' | 'Devnet' | 'Unknown' => {
-    if (!version) return 'Unknown';
-    const cleanVer = version.replace(/^v/, '');
-    const parts = cleanVer.split('.').map(Number);
-    
-    if (parts.length === 0 || isNaN(parts[0])) return 'Unknown';
-    
-    if (parts[0] >= 1) return 'Mainnet';
-    if (parts[0] === 0) return 'Devnet'; 
-    
-    return 'Unknown';
-};
 
 const RealtimeChart = ({ data, dataKey, color, type }: { data: any[], dataKey: string, color: string, type: 'bar' | 'line' }) => (
     <ChartContainer config={{}} className="h-[60px] w-full">
@@ -939,9 +926,16 @@ export default function PNodeDetailPage() {
                              <p className="text-sm text-muted-foreground mb-1">Version</p>
                              <div className="flex items-center gap-2">
                                 <p className="text-foreground font-mono">{node.version ? `v${node.version}` : '-'}</p>
-                                <Badge variant="outline" className={cn("text-[10px] px-1 h-5", getNetworkType(node.version) === 'Mainnet' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : "bg-blue-500/10 text-blue-500 border-blue-500/20")}>
-                                    {getNetworkType(node.version)}
-                                </Badge>
+                                {node.isMainnet && (
+                                    <Badge variant="outline" className="text-[10px] px-1 h-5 bg-purple-500/10 text-purple-500 border-purple-500/20 rounded-none">
+                                        Mainnet
+                                    </Badge>
+                                )}
+                                {node.isDevnet && (
+                                    <Badge variant="outline" className="text-[10px] px-1 h-5 bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-none">
+                                        Devnet
+                                    </Badge>
+                                )}
                              </div>
                            </div>
                          </div>
