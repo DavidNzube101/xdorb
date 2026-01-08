@@ -187,6 +187,20 @@ export const apiClient = {
 
   getOperators: () => fetchFromApi<Array<{ manager: string; owned: number; registered: number; pnodes: string[] }>>("/operators"),
 
+  // Subscription
+  subscribeToPNode: (id: string, email: string, frequency: string) =>
+    fetchFromApi<any>(`/pnodes/${id}/subscribe`, {
+      method: "POST",
+      body: JSON.stringify({ email, frequency }),
+    }),
+
+  // Developer API
+  generateAPIKey: (walletAddress: string) =>
+    fetchFromApi<{ apiKey: string; message: string }>("/developer/connect", {
+      method: "POST",
+      body: JSON.stringify({ walletAddress }),
+    }),
+
   // Clear cache manually if needed (No-op now)
   clearCache: () => {},
 }

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star, Lock } from "lucide-react"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star, Lock, Bell } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -23,6 +23,7 @@ import { ChartContainer } from "@/components/ui/chart"
 
 import { PNodeCard } from "@/components/pnode-card"
 import { SearchPalette } from "@/components/search-palette"
+import { SubscribeModal } from "@/components/subscribe-modal"
 import { cn } from "@/lib/utils"
 
 const ITEMS_PER_PAGE = 50
@@ -235,6 +236,7 @@ export default function PNodeDetailPage() {
   const [showSimulated, setShowSimulated] = useState(false)
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null)
   const [rank, setRank] = useState<number | null>(null)
+  const [isSubscribeOpen, setIsSubscribeOpen] = useState(false)
 
   const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
 
@@ -459,6 +461,12 @@ export default function PNodeDetailPage() {
     <TooltipProvider>
       <DashboardLayout>
         <FullscreenMetricModal data={modalData} onClose={() => setModalData(null)} />
+        <SubscribeModal 
+            isOpen={isSubscribeOpen} 
+            onClose={() => setIsSubscribeOpen(false)} 
+            pNodeId={node.id} 
+            pNodeName={node.name || node.id.slice(0, 8)} 
+        />
         <div className="space-y-6 pb-20">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -474,7 +482,19 @@ export default function PNodeDetailPage() {
                    </div>
               </div>
               
-              <Dialog>
+              <div className="flex gap-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => setIsSubscribeOpen(true)}>
+                            <Bell className="w-4 h-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Subscribe to Updates</p>
+                    </TooltipContent>
+                </Tooltip>
+
+                <Dialog>
                   <DialogTrigger asChild>
                      <div className="inline-block">
                        <Tooltip>
@@ -584,7 +604,8 @@ export default function PNodeDetailPage() {
                       </DialogFooter>
                   </DialogContent>
               </Dialog>
-            </div>
+              </div> {/* Close button group */}
+            </div> {/* Close justify-between */}
             <div className="md:hidden flex gap-2 items-center">
               <div className="flex-1 border border-border bg-card/50 rounded-lg p-2 h-10 flex items-center shadow-sm overflow-hidden">
                 <PriceMarquee />
@@ -986,12 +1007,10 @@ export default function PNodeDetailPage() {
                   </CardContent>
                 </Card>
             </div>
-
-
-            
           </div>
         </div>
       </DashboardLayout>
     </TooltipProvider>
   )
 }
+                               
