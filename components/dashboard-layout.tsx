@@ -27,7 +27,8 @@ import {
   Network, 
   Info, 
   MoreHorizontal,
-  Bookmark
+  Bookmark,
+  Code
 } from "lucide-react"
 
 import { PriceMarquee } from "@/components/price-marquee"
@@ -96,6 +97,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { label: "About", href: "/about", icon: Info },
     // Keeping Bookmarks as an extra feature, placed last or near relevant items
     { label: "Bookmarks", href: "/bookmarks", icon: Bookmark, badge: bookmarkCount },
+    { label: "Developers", href: "/developers", icon: Code },
   ]
 
   const mobileMainItems = navItems.slice(0, 4) // Home, pNodes
