@@ -5,6 +5,7 @@ import { WalletContextProvider } from '@/context/wallet-provider'
 import { TutorialCarousel } from '@/components/tutorial-carousel'
 import { WhatsNewModal } from '@/components/whats-new-modal'
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/next"
 import './globals.css'
 
 // Initialize fonts
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "XDOrb - Xandeum Analytics Platform",
     description: "Real-time pNode monitoring and analytics for the Xandeum network",
-    url: "https://xdorb.vercel.app",
+    url: "https://xdorb.xyz",
     siteName: "XDOrb",
     images: [
       {
@@ -68,6 +69,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
+            <Analytics />
             <Toaster />
             <TutorialCarousel />
             <WhatsNewModal />
