@@ -532,7 +532,6 @@ export default function PNodesPage() {
                                         </th>
                                         <th className="text-left p-3 font-semibold text-foreground">Location</th>
                                         <th className="text-left p-3 font-semibold text-foreground hidden md:table-cell">Status</th>
-                                        <th className="text-left p-3 font-semibold text-foreground hidden lg:table-cell">Public</th>
                                         <th className="text-left p-3 font-semibold text-foreground hidden lg:table-cell">RPC Port</th>
                                         <th className="text-left p-3 font-semibold text-foreground cursor-pointer hover:text-primary" onClick={() => handleSort('credits')}>
                                             <div className="flex items-center">Credits <SortIcon field="credits" /></div>
@@ -622,7 +621,6 @@ export default function PNodesPage() {
                                         </td>
                                         <td className="p-3 text-muted-foreground">{node.location}</td>
                                         <td className="p-3 hidden md:table-cell"><Badge className={cn(statusBadgeVariant(node.status))}>{node.status.charAt(0).toUpperCase() + node.status.slice(1)}</Badge></td>
-                                        <td className="p-3 hidden lg:table-cell text-sm text-muted-foreground">{node.isPublic ? 'Yes' : 'No'}</td>
                                         <td className="p-3 hidden lg:table-cell text-sm text-muted-foreground">{node.rpcPort || '-'}</td>
                                         <td className="p-3 text-muted-foreground font-mono text-sm">
                                             <div className="flex items-center gap-1">
