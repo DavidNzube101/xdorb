@@ -570,14 +570,17 @@ export default function PNodeDetailPage() {
                                           <div className="text-muted-foreground">ID</div>
                                           <div className="font-mono text-xs truncate">{node.id}</div>
                                           
-                                          <div className="text-muted-foreground">Performance</div>
-                                          <div className="font-semibold">{node.performance ? `${node.performance}%` : '-'}</div>
+                                          <div className="text-muted-foreground">Rank</div>
+                                          <div className="font-semibold">{rank ? `#${rank}` : '-'}</div>
                                           
-                                          <div className="text-muted-foreground">Risk Score</div>
-                                          <div className="font-semibold">{node.riskScore ? `${node.riskScore}%` : '-'}</div>
+                                          <div className="text-muted-foreground">Credits</div>
+                                          <div className="font-semibold text-yellow-500 flex items-center gap-1">
+                                              <Star className="w-3 h-3 fill-yellow-500" />
+                                              {nodeCredits.toLocaleString()}
+                                          </div>
                                           
-                                          <div className="text-muted-foreground">Stake</div>
-                                          <div>{node.stake ? `${node.stake} POL` : '-'}</div>
+                                          <div className="text-muted-foreground">XDN Score</div>
+                                          <div className="font-semibold">{node.xdnScore ? node.xdnScore.toFixed(0) : '-'}</div>
                                       </div>
                                    </div>
                               </div>
