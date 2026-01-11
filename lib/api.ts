@@ -28,6 +28,8 @@ export interface PNodeMetrics {
   memoryTotal?: number
   packetsIn?: number
   packetsOut?: number
+  isPublic?: boolean
+  rpcPort?: number
 }
 
 export interface DashboardStats {
