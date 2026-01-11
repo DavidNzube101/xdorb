@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Lock } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // The parent page now provides the node with more data
 type PNodeWithData = PNodeMetrics & { 
@@ -128,9 +129,19 @@ export function PNodeCard({ node }: PNodeCardProps) {
           <div onClick={(e) => e.stopPropagation()}>
             <p className="text-muted-foreground">Storage</p>
             <div className="flex items-center gap-1">
-                <p className="font-semibold">
-                {convertBytes(node.storageUsed, storageUnit)}
-                </p>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <p className="font-semibold cursor-help">
+                            {convertBytes(node.storageUsed, storageUnit)}
+                            </p>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p className="font-mono text-xs">Used: {node.storageUsed?.toLocaleString() ?? 0} Bytes</p>
+                            <p className="font-mono text-xs">Total: {node.storageCapacity?.toLocaleString() ?? 0} Bytes</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 <Select onValueChange={(value: 'TB' | 'GB' | 'MB') => setStorageUnit(value)} defaultValue={storageUnit}>
                     <SelectTrigger className="w-fit h-6 text-xs border-none bg-transparent focus:ring-0 rounded-none">
                         <SelectValue />

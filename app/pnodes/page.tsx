@@ -632,7 +632,15 @@ export default function PNodesPage() {
                                         <td className="p-3 text-muted-foreground">{node.latency}ms</td>
                                         <td className="p-3 text-muted-foreground">
                                             <div className="flex flex-col gap-1 w-[140px]">
-                                                <span className="text-xs font-mono">{convertBytes(node.storageUsed, listStorageUnit)} / {convertBytes(node.storageCapacity, listStorageUnit)} {listStorageUnit}</span>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="text-xs font-mono cursor-help">{convertBytes(node.storageUsed, listStorageUnit)} / {convertBytes(node.storageCapacity, listStorageUnit)} {listStorageUnit}</span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="font-mono text-xs">Used: {node.storageUsed?.toLocaleString() ?? 0} Bytes</p>
+                                                        <p className="font-mono text-xs">Total: {node.storageCapacity?.toLocaleString() ?? 0} Bytes</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                                                     <div 
                                                         className="h-full bg-primary/70 transition-all duration-500" 
