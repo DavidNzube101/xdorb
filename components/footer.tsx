@@ -8,12 +8,12 @@ export function FooterContent() {
       <div className="flex items-center gap-4">
         <span>© 2025 XDOrb</span>
         <a
-          href="https://docs.xandeum.network"
+          href="https://x.com/use_XDOrb"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 hover:text-primary transition-colors"
         >
-          Docs <ExternalLink className="w-3 h-3" />
+          X <ExternalLink className="w-3 h-3" />
         </a>
         <a
           href="https://discord.gg/uqRSmmM5m"
