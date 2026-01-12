@@ -6,7 +6,11 @@ XDOrb is a comprehensive analytics platform for monitoring and analyzing Xandeum
 
 ## Live Demo
 
-View the live platform at [https://xdorb.vercel.app](https://xdorb.vercel.app)
+View the live platform at [https://xdorb.xyz](https://xdorb.xyz)
+
+## Developers
+
+Get started with XDOrb APIs today [https://xdorb.xyz/developers](https://xdorb.xyz/developers)
 
 ## Deployment Guide
 
