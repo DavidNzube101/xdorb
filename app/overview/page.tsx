@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { NotificationManager } from "@/components/notification-manager"
 import { EmbeddableWidgets } from "@/components/embeddable-widgets"
+import { TradingTerminalModal } from "@/components/trading-terminal-modal"
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 
 const statsFetcher = async () => {
   const result = await apiClient.getDashboardStats()
@@ -51,6 +53,28 @@ export default function DashboardPage() {
 
   const [search, setSearch] = useState("")
   const [events, setEvents] = useState<Array<{ id: string; type: string; message: string; time: string }>>([])
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false)
+  const { setVisible } = useWalletModal()
+
+  const handleTerminalConnectClick = () => {
+    setIsTerminalOpen(false)
+    setVisible(true)
+  }
+
+  useEffect(() => {
+    // Check URL hash for actions
+    const hash = window.location.hash
+    if (hash === '#terminal') {
+      setIsTerminalOpen(true)
+      // Clear hash to avoid reopening on refresh
+      window.history.replaceState(null, '', window.location.pathname)
+    } else if (hash === '#feed') {
+      const feedElement = document.getElementById('feed')
+      if (feedElement) {
+        feedElement.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (status?.maintenance) return;
@@ -181,6 +205,11 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
+      <TradingTerminalModal
+        isOpen={isTerminalOpen}
+        onOpenChange={setIsTerminalOpen}
+        onConnectClick={handleTerminalConnectClick}
+      />
       <div className="space-y-8 max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-none bg-gradient-to-br from-primary/10 via-background to-secondary/10 border border-primary/10 p-8 md:p-12">
@@ -342,7 +371,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Realtime Feed */}
-            <div className="lg:col-span-1">
+            <div id="feed" className="lg:col-span-1">
                 <Card className="border-border bg-card/50 rounded-none h-full overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">

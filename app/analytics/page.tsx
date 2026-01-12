@@ -103,6 +103,13 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     setIsMounted(true)
+    if (window.location.hash === '#stoinc') {
+      setStoincCalcOpen(true)
+      // Optional: scroll to it
+      document.getElementById('stoinc')?.scrollIntoView({ behavior: 'smooth' })
+    } else if (window.location.hash === '#compare') {
+      document.getElementById('compare')?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [])
 
   // AI Summary

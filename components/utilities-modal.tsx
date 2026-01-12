@@ -19,13 +19,7 @@ export function UtilitiesModal({ isOpen, onClose }: UtilitiesModalProps) {
       description: "Estimate your rewards",
       icon: Calculator,
       action: () => {
-        // Assuming STOINC is a section on the landing/overview page or has a route. 
-        // Based on previous context, it's often a section.
-        // Let's route to a likely page or section. 
-        // If it's a modal, we might need a way to trigger it globally or route to a page that opens it.
-        // For now, routing to /overview#stoinc if it exists, or just /overview as placeholder.
-        // Actually, let's assume /overview#stoinc for now or update if needed.
-        router.push("/overview#stoinc") 
+        router.push("/analytics#stoinc") 
         onClose()
       }
     },
@@ -61,12 +55,7 @@ export function UtilitiesModal({ isOpen, onClose }: UtilitiesModalProps) {
       description: "Swap & Chart view",
       icon: Terminal,
       action: () => {
-        // Trigger the trading terminal modal globally if possible, 
-        // or route to a page where it's open.
-        // Often these are global. For now, let's route to /overview where it might be accessible.
-        // Better: trigger a custom event or use context if set up.
-        // Given complexity, let's route to /overview.
-        router.push("/overview") 
+        router.push("/overview#terminal") 
         onClose()
       }
     },
@@ -84,7 +73,7 @@ export function UtilitiesModal({ isOpen, onClose }: UtilitiesModalProps) {
       description: "Live network events",
       icon: Activity,
       action: () => {
-        router.push("/network")
+        router.push("/overview#feed")
         onClose()
       }
     },
