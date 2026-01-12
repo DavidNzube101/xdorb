@@ -33,6 +33,7 @@ import {
 
 import { PriceMarquee } from "@/components/price-marquee"
 import { BuyXandButton } from "@/components/buy-xand-button"
+import { UtilitiesModal } from "@/components/utilities-modal"
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -43,6 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [bookmarkCount, setBookmarkCount] = useState(0)
   const [date, setDate] = useState<string>("")
   const [time, setTime] = useState<string>("")
+  const [isUtilitiesOpen, setIsUtilitiesOpen] = useState(false)
 
   useEffect(() => {
     // Client-side date
@@ -105,9 +107,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background relative selection:bg-primary/20">
+      <UtilitiesModal isOpen={isUtilitiesOpen} onClose={() => setIsUtilitiesOpen(false)} />
       
       {/* Top Left: Logo Widget */}
-      <div className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-border px-4 py-3 shadow-lg rounded-none animate-in fade-in slide-in-from-top-4 duration-500">
+      <div 
+        className="fixed top-6 left-6 z-50 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-border px-4 py-3 shadow-lg rounded-none animate-in fade-in slide-in-from-top-4 duration-500 cursor-pointer hover:border-primary/50 transition-colors"
+        onClick={() => setIsUtilitiesOpen(true)}
+      >
         <img 
           src="/Logo.png" 
           alt="XDOrb" 
