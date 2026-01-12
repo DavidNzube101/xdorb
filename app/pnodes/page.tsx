@@ -50,6 +50,22 @@ const creditsFetcher = async (url: string) => {
 
 const dashboardStatsFetcher = () => apiClient.getDashboardStats();
 
+const fetchNodeCount = async () => {
+    const startTime = performance.now();
+    try {
+        const response = await fetch('https://api.xdorb.xyz/v1/get-all-pnodes');
+        const data = await response.json();
+        const endTime = performance.now();
+        return {
+            count: data.pagination?.total || (data.data ? data.data.length : 0),
+            time: (endTime - startTime) / 1000
+        };
+    } catch (error) {
+        console.error("Failed to fetch node count:", error);
+        return { count: 0, time: 0 };
+    }
+};
+
 const convertBytes = (bytes: number, unit: 'TB' | 'GB' | 'MB') => {
     if (!bytes || bytes === 0) return '0.00';
     const k = 1024;
@@ -100,6 +116,7 @@ export default function PNodesPage() {
   const { data: result, isLoading, mutate } = useSWR(`/pnodes/all?network=${network}`, fetcher)
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
   const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
+  const { data: nodeCountData } = useSWR('node-count-stats', fetchNodeCount, { refreshInterval: 60000 });
 
   useEffect(() => {
     setMounted(true);
@@ -502,8 +519,12 @@ export default function PNodesPage() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardDescription>
-                                Fetched {filteredPnodes.length} nodes in {statsResult?.data?.fetchTime.toFixed(2) ?? '-'}s
+                            <CardDescription className="min-h-[20px]">
+                                {nodeCountData ? (
+                                    `Fetched ${nodeCountData.count} nodes in ${nodeCountData.time.toFixed(2)}s`
+                                ) : (
+                                    <span className="opacity-50 animate-pulse italic">Retrieving network stats...</span>
+                                )}
                             </CardDescription>
                         </div>
                         <div className="flex gap-2 items-center">
