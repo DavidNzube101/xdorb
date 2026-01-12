@@ -14,12 +14,13 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, PieChart, Pie, Label as RechartsLabel } from "recharts"
-import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star, Lock, Bell } from "lucide-react"
+import { ArrowLeft, Copy, HelpCircle, Brain, Sparkles, Share2, Download, AlertCircle, Cpu, Expand, BarChart2, LineChart as LineChartIcon, Twitter, Send, ExternalLink, Star, Lock, Bell, Bookmark } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Typewriter } from "@/components/typewriter"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import * as htmlToImage from 'html-to-image'
 import { ChartContainer } from "@/components/ui/chart"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { PNodeCard } from "@/components/pnode-card"
 import { SearchPalette } from "@/components/search-palette"
@@ -39,6 +40,17 @@ const creditsFetcher = async (url: string) => {
     if (!response.ok) throw new Error('Failed to fetch credits');
     const data = await response.json();
     return data.pods_credits as { pod_id: string; credits: number }[];
+};
+
+const convertBytes = (bytes: number, unit: 'TB' | 'GB' | 'MB') => {
+    if (!bytes || bytes === 0) return '0.00';
+    const k = 1024;
+    const units = {
+      'MB': k * k,
+      'GB': k * k * k,
+      'TB': k * k * k * k,
+    };
+    return (bytes / units[unit]).toFixed(2);
 };
 
 const formatUptime = (seconds: number) => {
@@ -77,7 +89,8 @@ const RealtimeChart = ({ data, dataKey, color, type }: { data: any[], dataKey: s
 const UptimeDonutChart = ({ uptime, isFullscreen = false }: { uptime: number; isFullscreen?: boolean }) => {
     const startDate = new Date(Date.now() - uptime * 1000);
     const now = new Date();
-    const shades = ['#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af']; // Different shades of blue
+    // Distinct primary accent shades
+    const shades = ['#f9961e', '#ea580c', '#b45309', '#7c2d12', '#451a03']; 
     const days: { day: string; uptime: number; fill: string }[] = [];
 
     let shadeIndex = 0;
@@ -237,8 +250,40 @@ export default function PNodeDetailPage() {
   const [registrationInfo, setRegistrationInfo] = useState<{ date: string; time: string } | null>(null)
   const [rank, setRank] = useState<number | null>(null)
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false)
+  const [storageUnit, setStorageUnit] = useState<'TB' | 'GB' | 'MB'>('GB')
+  const [mounted, setMounted] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
 
-  const { data: creditsData } = useSWR('/api/credits', creditsFetcher);
+  useEffect(() => {
+    setMounted(true)
+    const checkBookmark = () => {
+        const saved = localStorage.getItem('bookmarked-pnodes')
+        if (saved) {
+            const bookmarks = JSON.parse(saved)
+            setBookmarked(bookmarks.includes(id))
+        }
+    }
+    checkBookmark()
+    window.addEventListener('storage', checkBookmark)
+    return () => window.removeEventListener('storage', checkBookmark)
+  }, [id])
+
+  const toggleBookmark = () => {
+    const saved = localStorage.getItem('bookmarked-pnodes')
+    let bookmarks = saved ? JSON.parse(saved) : []
+    
+    if (bookmarked) {
+        bookmarks = bookmarks.filter((b: string) => b !== id)
+    } else {
+        bookmarks.push(id)
+    }
+    
+    localStorage.setItem('bookmarked-pnodes', JSON.stringify(bookmarks))
+    setBookmarked(!bookmarked)
+    window.dispatchEvent(new Event('storage'))
+  }
+
+  const { data: creditsData } = useSWR('/api/credits', creditsFetcher, { refreshInterval: 2000 });
 
   const nodeCredits = useMemo(() => {
     if (!creditsData || !id) return 0;
@@ -476,9 +521,17 @@ export default function PNodeDetailPage() {
                   </a>
                    <div>
                       <div className="flex items-center gap-2">
-                        <h1 className="text-3xl font-bold text-foreground">{node.name}</h1>
+                        <h1 className="text-xl md:text-3xl font-bold text-foreground">{node.name}</h1>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={toggleBookmark}
+                            className="h-8 w-8 ml-1"
+                        >
+                            <Bookmark className={cn("w-5 h-5", bookmarked ? "fill-primary text-primary" : "text-muted-foreground")} />
+                        </Button>
                       </div>
-                      <p className="text-muted-foreground">{node.location}</p>
+                      <p className="text-xs md:text-base text-muted-foreground">{node.location}</p>
                    </div>
               </div>
               
@@ -537,50 +590,58 @@ export default function PNodeDetailPage() {
                                   </div>
                                   
                                   <div className="grid grid-cols-2 gap-4">
-                                        <div className="border p-4 rounded-lg bg-card">
-                                           <p className="text-sm text-muted-foreground mb-1">Memory</p>
+                                        <div className="border p-4 rounded-lg bg-card flex flex-col justify-center items-center text-center">
+                                           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Memory</p>
                                            <p className="text-xl font-bold">
-                                             {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(2)}/${(node.memoryTotal / 1024**3).toFixed(2)} GB` : '-'}
+                                             {node.memoryUsed && node.memoryTotal ? `${(node.memoryUsed / 1024**3).toFixed(1)} GB` : '-'}
                                            </p>
                                         </div>
-                                       <div className="border p-4 rounded-lg bg-card">
-                                          <p className="text-sm text-muted-foreground mb-1">Uptime</p>
+                                       <div className="border p-4 rounded-lg bg-card flex flex-col justify-center items-center text-center">
+                                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">CPU</p>
+                                          <p className="text-xl font-bold">{node.cpuPercent?.toFixed(1) ?? '-'}%</p>
+                                       </div>
+                                       <div className="border p-4 rounded-lg bg-card flex flex-col justify-center items-center text-center">
+                                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Uptime</p>
                                           <p className="text-xl font-bold">{formatUptime(node.uptime)}</p>
                                        </div>
-                                       <div className="border p-4 rounded-lg bg-card">
-                                          <p className="text-sm text-muted-foreground mb-1">Latency</p>
+                                       <div className="border p-4 rounded-lg bg-card flex flex-col justify-center items-center text-center">
+                                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Latency</p>
                                           <p className="text-xl font-bold">{node.latency}ms</p>
                                        </div>
                                   </div>
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-6">
-                                   <div className="border rounded-lg p-4 bg-card h-64">
-                                      <h4 className="font-semibold mb-2 text-sm">Uptime Trend (24h)</h4>
-                                       <ResponsiveContainer width="100%" height="100%">
-                                          <AreaChart data={history?.map(h => ({ ...h, time: '' })) || []}>
-                                              <Area type="monotone" dataKey="uptime" stroke="var(--color-secondary)" fill="var(--color-secondary)" fillOpacity={0.1} />
-                                          </AreaChart>
-                                      </ResponsiveContainer>
-                                   </div>
-                                   
-                                   <div className="border rounded-lg p-4 bg-card space-y-3">
-                                      <h4 className="font-semibold mb-2 text-sm">Node Details</h4>
-                                      <div className="grid grid-cols-2 gap-y-3 text-sm">
-                                          <div className="text-muted-foreground">ID</div>
-                                          <div className="font-mono text-xs truncate">{node.id}</div>
-                                          
-                                          <div className="text-muted-foreground">Rank</div>
-                                          <div className="font-semibold">{rank ? `#${rank}` : '-'}</div>
-                                          
-                                          <div className="text-muted-foreground">Credits</div>
-                                          <div className="font-semibold text-yellow-500 flex items-center gap-1">
-                                              <Star className="w-3 h-3 fill-yellow-500" />
-                                              {nodeCredits.toLocaleString()}
+                              <div className="grid grid-cols-1 gap-6">
+                                   <div className="border rounded-lg p-6 bg-card space-y-4">
+                                      <h4 className="font-bold text-base border-b pb-2 border-border/50 uppercase tracking-widest text-primary/80 text-center">pNode Specifications</h4>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm">
+                                          <div className="col-span-2">
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">Identity</p>
+                                              <p className="font-mono text-[10px] break-all bg-muted/50 p-2 rounded border">{node.id}</p>
                                           </div>
-                                          
-                                          <div className="text-muted-foreground">XDN Score</div>
-                                          <div className="font-semibold">{node.xdnScore ? node.xdnScore.toFixed(0) : '-'}</div>
+                                          <div className="col-span-2">
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">Operator / Manager</p>
+                                              <p className="font-mono text-[10px] break-all bg-muted/50 p-2 rounded border">{node.manager || 'Unmanaged'}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">XDN Score</p>
+                                              <p className="font-bold text-lg text-primary">{node.xdnScore ? node.xdnScore.toFixed(0) : '-'}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">Global Rank</p>
+                                              <p className="font-bold text-lg text-foreground">#{rank ?? '-'}</p>
+                                          </div>
+                                          <div>
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">Credits</p>
+                                              <div className="flex items-center gap-1 font-bold text-lg text-yellow-500">
+                                                  <Star className="w-4 h-4 fill-yellow-500" />
+                                                  {nodeCredits.toLocaleString()}
+                                              </div>
+                                          </div>
+                                          <div>
+                                              <p className="text-muted-foreground mb-1 text-[10px] font-bold uppercase">Version</p>
+                                              <p className="font-mono font-semibold text-foreground bg-muted/30 px-2 py-1 rounded w-fit">{node.version || '-'}</p>
+                                          </div>
                                       </div>
                                    </div>
                               </div>
@@ -847,163 +908,170 @@ export default function PNodeDetailPage() {
             <div className="lg:order-4 order-5">
                 <Card className="border-border bg-card h-full">
                   <CardHeader>
-                    <CardTitle>Node Information</CardTitle>
+                    <CardTitle className="uppercase tracking-widest text-sm text-muted-foreground font-bold">Node Information</CardTitle>
                   </CardHeader>
                   <CardContent>
-                     <div className="space-y-4">
-                       {node.registered && (
-                         <div className="flex items-center gap-2">
+                     <div className="space-y-8">
+                       <div className="flex flex-wrap items-center gap-3 border-b pb-6 border-border/50">
+                         {node.registered && (
                            <Dialog>
                              <DialogTrigger asChild>
-                               <Badge variant="default" className="bg-green-600 hover:bg-green-700 cursor-pointer" onClick={fetchRegistrationInfo}>
+                               <Badge variant="default" className="bg-green-600 hover:bg-green-700 cursor-pointer rounded-none px-3 py-1 text-[10px] uppercase font-bold" onClick={fetchRegistrationInfo}>
                                  Registered
                                </Badge>
                              </DialogTrigger>
-                             <DialogContent>
+                             <DialogContent className="rounded-none">
                                <DialogHeader>
                                  <DialogTitle>Registered Node</DialogTitle>
                                  <DialogDescription>This node is officially registered on the Xandeum network.</DialogDescription>
                                </DialogHeader>
-                               <div className="py-4">
-                                 <p>Registration Date: {registrationInfo?.date || 'Loading...'}</p>
-                                 <p>Registration Time: {registrationInfo?.time || 'Loading...'}</p>
+                               <div className="py-4 space-y-2">
+                                 <p className="text-sm">Registration Date: <span className="font-mono text-primary">{registrationInfo?.date || 'Loading...'}</span></p>
+                                 <p className="text-sm">Registration Time: <span className="font-mono text-primary">{registrationInfo?.time || 'Loading...'}</span></p>
                                </div>
                                <DialogFooter>
                                  <a href="https://seenodes.xandeum.network/" target="_blank" rel="noopener noreferrer">
-                                   <Button variant="link">See Xandeum's Publication</Button>
+                                   <Button variant="link" className="text-primary p-0">See Xandeum's Publication</Button>
                                  </a>
                                </DialogFooter>
                              </DialogContent>
                            </Dialog>
-                         </div>
-                       )}
-                       {isPrivate && (
-                         <Badge variant="outline" className="flex items-center gap-1 text-[10px] px-1 h-5">
-                           <Lock className="w-3 h-3" />
-                           Private
-                         </Badge>
-                       )}
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                         <div className="space-y-4">
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Public Key/Node ID</p>
+                         )}
+                         {isPrivate && (
+                           <Badge variant="outline" className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-none border-amber-500/50 text-amber-500 uppercase font-bold">
+                             <Lock className="w-3 h-3" />
+                             Private
+                           </Badge>
+                         )}
+                         {node.isMainnet && (
+                            <Badge variant="outline" className="text-[10px] px-2 py-1 bg-purple-500/10 text-purple-500 border-purple-500/20 rounded-none uppercase font-bold">
+                                Mainnet
+                            </Badge>
+                         )}
+                         {node.isDevnet && (
+                            <Badge variant="outline" className="text-[10px] px-2 py-1 bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-none uppercase font-bold">
+                                Devnet
+                            </Badge>
+                         )}
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                         {/* Left Column: IDs and Location */}
+                         <div className="space-y-6">
+                           <div className="group">
+                             <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-tighter font-bold">Identity Pubkey</p>
                              <div className="flex items-center gap-2">
-                               <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all truncate">
+                               <code className="flex-1 p-3 bg-muted/50 rounded-none font-mono text-xs text-foreground break-all border border-transparent group-hover:border-primary/30 transition-colors">
                                  {node.id}
                                </code>
-                               <button
-                                 onClick={() => copyToClipboard(node.id)}
-                                 className="p-2 hover:bg-muted rounded transition-colors"
-                                 title="Copy ID"
-                               >
-                                 <Copy className="w-4 h-4" />
-                               </button>
-                               <a 
-                                 href={`https://orbmarkets.io/address/${node.id}`} 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                                 className="p-2 hover:bg-muted rounded transition-colors text-primary"
-                                 title="View on OrbMarkets Explorer"
-                               >
-                                 <ExternalLink className="w-4 h-4" />
-                               </a>
+                               <div className="flex flex-col gap-1">
+                                 <Button
+                                   variant="ghost"
+                                   size="icon"
+                                   onClick={() => copyToClipboard(node.id)}
+                                   className="h-8 w-8 rounded-none hover:bg-primary/10"
+                                 >
+                                   <Copy className="w-3.5 h-3.5" />
+                                 </Button>
+                                 <a 
+                                   href={`https://orbmarkets.io/address/${node.id}`} 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   className="flex items-center justify-center h-8 w-8 hover:bg-primary/10 text-primary transition-colors"
+                                 >
+                                   <ExternalLink className="w-3.5 h-3.5" />
+                                 </a>
+                               </div>
                              </div>
                            </div>
 
                            {node.manager && (
-                             <div>
-                               <p className="text-sm text-muted-foreground mb-1">Operator / Manager</p>
+                             <div className="group">
+                               <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-tighter font-bold">Operator / Manager</p>
                                <div className="flex items-center gap-2">
-                                 <code className="flex-1 p-2 bg-muted rounded font-mono text-xs sm:text-sm text-foreground break-all truncate">
+                                 <code className="flex-1 p-3 bg-muted/50 rounded-none font-mono text-xs text-foreground break-all border border-transparent group-hover:border-primary/30 transition-colors">
                                    {node.manager}
                                  </code>
-                                 <button
+                                 <Button
+                                   variant="ghost"
+                                   size="icon"
                                    onClick={() => copyToClipboard(node.manager || "")}
-                                   className="p-2 hover:bg-muted rounded transition-colors"
-                                   title="Copy Manager ID"
+                                   className="h-8 w-8 rounded-none hover:bg-primary/10"
                                  >
-                                   <Copy className="w-4 h-4" />
-                                 </button>
+                                   <Copy className="w-3.5 h-3.5" />
+                                 </Button>
                                </div>
                              </div>
                            )}
 
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Rank</p>
-                             <p className="text-foreground font-bold text-lg">{rank ? `#${rank}` : '-'}</p>
-                           </div>
-
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Credits</p>
-                             <div className="flex items-center gap-1 text-foreground font-bold text-lg">
-                                <Star className="w-4 h-4 text-yellow-400" />
-                                {nodeCredits.toLocaleString()}
+                           <div className="grid grid-cols-2 gap-4 pt-2">
+                             <div>
+                               <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-tighter font-bold">Location</p>
+                               <p className="text-sm font-semibold">{node.location}</p>
                              </div>
-                           </div>
-
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Location</p>
-                             <p className="text-foreground">{node.location}</p>
-                           </div>
-
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Version</p>
-                             <div className="flex items-center gap-2">
-                                <p className="text-foreground font-mono">{node.version ? `v${node.version}` : '-'}</p>
-                                {node.isMainnet && (
-                                    <Badge variant="outline" className="text-[10px] px-1 h-5 bg-purple-500/10 text-purple-500 border-purple-500/20 rounded-none">
-                                        Mainnet
-                                    </Badge>
-                                )}
-                                {node.isDevnet && (
-                                    <Badge variant="outline" className="text-[10px] px-1 h-5 bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-none">
-                                        Devnet
-                                    </Badge>
-                                )}
+                             <div>
+                               <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-tighter font-bold">Version</p>
+                               <p className="text-sm font-mono">{node.version ? `v${node.version}` : '-'}</p>
                              </div>
                            </div>
                          </div>
 
-                         <div className="space-y-4">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm text-muted-foreground">Packets (In/Out)</p>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Network packets received (in) and sent (out) by the node since startup.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                              <p className="text-foreground"><span className="text-blue-500">{packetsIn ?? node.packetsIn ?? '-'}</span> / <span className="text-green-500">{packetsOut ?? node.packetsOut ?? '-'}</span></p>
+                         {/* Right Column: Storage and Performance */}
+                         <div className="space-y-6">
+                            <div className="p-4 bg-muted/30 border border-border/50 rounded-none space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-bold">Network Storage</p>
+                                    <Select value={storageUnit} onValueChange={(v: any) => setStorageUnit(v)}>
+                                        <SelectTrigger className="w-fit h-7 text-[10px] border-none bg-background focus:ring-0 rounded-none uppercase font-bold">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-none">
+                                            <SelectItem value="MB">MB</SelectItem>
+                                            <SelectItem value="GB">GB</SelectItem>
+                                            <SelectItem value="TB">TB</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <div className="flex items-baseline justify-between">
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-2xl font-bold">{convertBytes(node.storageUsed, storageUnit)}</span>
+                                            <span className="text-[10px] text-muted-foreground font-bold uppercase">{storageUnit} Used</span>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground font-mono">/ {convertBytes(node.storageCapacity, storageUnit)} {storageUnit}</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-muted rounded-none overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary transition-all duration-1000 ease-out" 
+                                            style={{ width: `${mounted ? Math.min(100, (node.storageUsed / (node.storageCapacity || 1)) * 100) : 0}%` }} 
+                                        />
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground font-mono text-right pt-1 opacity-70">
+                                        RAW: {node.storageUsed?.toLocaleString()} Bytes
+                                    </p>
+                                </div>
                             </div>
 
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Stake</p>
-                             <p className="text-foreground">{node.stake ? `${node.stake} POL` : '-'}</p>
-                           </div>
-
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Total Credits</p>
-                             <p className="text-foreground font-bold">{node.credits?.toLocaleString() || '0'}</p>
-                           </div>
-
-                           <div>
-                             <p className="text-sm text-muted-foreground mb-1">Risk Score</p>
-                             <div className="flex items-center gap-2">
-                               <div className="flex-1 bg-muted h-2 overflow-hidden">
-                                 <div
-                                   className={`h-full transition-all duration-500 ${
-                                     (dynamicRiskScore || 0) < 30 ? "bg-green-500" : (dynamicRiskScore || 0) < 70 ? "bg-primary" : "bg-red-500"
-                                   }`}
-                                   style={{ width: `${dynamicRiskScore || 0}%` }}
-                                 />
-                               </div>
-                               <span className="text-sm font-semibold">{dynamicRiskScore?.toFixed(0) || '-'}%</span>
-                             </div>
-                           </div>
+                            <div className="grid grid-cols-2 gap-6 px-2">
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-tighter font-bold">Global Rank</p>
+                                    <p className="text-xl font-black text-primary italic">#{rank ? rank.toLocaleString() : '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-tighter font-bold">Total Credits</p>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-1">
+                                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                            <p className="text-xl font-black text-foreground">{nodeCredits.toLocaleString()}</p>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                                            Live: {nodeCredits.toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                          </div>
                        </div>
                      </div>

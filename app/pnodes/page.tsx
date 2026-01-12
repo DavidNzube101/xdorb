@@ -91,6 +91,7 @@ export default function PNodesPage() {
   const [listStorageUnit, setListStorageUnit] = useState<'TB' | 'GB' | 'MB'>('GB');
   const [timeFormat, setTimeFormat] = useState<'absolute' | 'relative'>('relative');
   const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ field: string | null; direction: 'asc' | 'desc' | null }>({
     field: null,
     direction: null,
@@ -99,6 +100,10 @@ export default function PNodesPage() {
   const { data: result, isLoading, mutate } = useSWR(`/pnodes/all?network=${network}`, fetcher)
   const { data: statsResult } = useSWR('/dashboard/stats', dashboardStatsFetcher)
   const { data: creditsData } = useSWR(`/api/credits?network=${network}`, creditsFetcher);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Determine the WebSocket URL (handle both localhost and production with secure protocol)
